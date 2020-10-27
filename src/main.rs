@@ -78,17 +78,15 @@ impl PProfRecordTreeNode {
         }
     }
 
-    fn display_flamegraph(&self, prefix: &str) -> String {
+    fn display_flamegraph(&self, prefix: &str, writer: &mut impl std::io::Write) {
         let prefix_name = prefix.to_owned() + self.name.as_str();
-        let mut r = format!("{} {}\n", prefix_name, self.cycles);
+        writer
+            .write_all(format!("{} {}\n", prefix_name, self.cycles).as_bytes())
+            .unwrap();
         for e in &self.childs {
-            r.push_str(
-                e.borrow()
-                    .display_flamegraph(&(prefix_name.as_str().to_owned() + "; "))
-                    .as_str(),
-            );
+            e.borrow()
+                .display_flamegraph(&(prefix_name.as_str().to_owned() + "; "), writer);
         }
-        return r;
     }
 }
 
@@ -167,7 +165,9 @@ impl<'a, R: Register, M: Memory<R>, Inner: ckb_vm::machine::SupportMachine<REG =
 
     fn on_exit(&mut self, machine: &mut ckb_vm::machine::DefaultMachine<'a, Inner>) {
         assert_eq!(machine.exit_code(), 0);
-        println!("{}", self.tree_root.borrow().display_flamegraph(""));
+        self.tree_root
+            .borrow()
+            .display_flamegraph("", &mut std::io::stdout());
     }
 }
 
