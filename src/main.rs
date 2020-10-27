@@ -182,8 +182,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .help("Specify the name of the executable")
                 .required(true),
         )
+        .arg(
+            clap::Arg::with_name("arg")
+                .long("arg")
+                .value_name("arguments")
+                .help("Pass arguments to binary")
+                .multiple(true),
+        )
         .get_matches();
     let fl_bin = flag_parser.value_of("bin").unwrap();
+    let fl_arg: Vec<_> = flag_parser.values_of("arg").unwrap_or_default().collect();
 
     let code_data = std::fs::read(fl_bin)?;
     let code = bytes::Bytes::from(code_data);
@@ -198,7 +206,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let default_machine = default_machine_builder.build();
     let pprof_func_provider = Box::new(PProfLogger::new(String::from(fl_bin))?);
     let mut machine = ckb_vm::PProfMachine::new(default_machine, pprof_func_provider);
-    machine.load_program(&code, &vec!["main".into()]).unwrap();
+    let mut args = vec![fl_bin.to_string().into()];
+    args.append(
+        &mut fl_arg
+            .iter()
+            .map(|x| bytes::Bytes::from(x.to_string()))
+            .collect(),
+    );
+    machine.load_program(&code, &args).unwrap();
     machine.run()?;
 
     Ok(())
