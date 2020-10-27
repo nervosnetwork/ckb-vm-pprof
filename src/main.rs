@@ -64,6 +64,7 @@ fn sprint_fun(
 #[derive(Clone, Debug)]
 struct PProfRecordTreeNode {
     name: String, // FILENAME + FUNCTION_NAME as expected.
+    parent: Option<Rc<RefCell<PProfRecordTreeNode>>>,
     childs: Vec<Rc<RefCell<PProfRecordTreeNode>>>,
     cycles: u64,
 }
@@ -73,6 +74,7 @@ impl PProfRecordTreeNode {
     fn root() -> Self {
         Self {
             name: String::from("??:??"),
+            parent: None,
             childs: vec![],
             cycles: 0,
         }
@@ -97,7 +99,6 @@ struct PProfLogger {
     >,
     tree_root: Rc<RefCell<PProfRecordTreeNode>>,
     tree_node: Rc<RefCell<PProfRecordTreeNode>>,
-    tree_parent: Vec<Rc<RefCell<PProfRecordTreeNode>>>,
 }
 
 impl PProfLogger {
@@ -111,7 +112,6 @@ impl PProfLogger {
             atsl_context: ctx,
             tree_root: tree_root.clone(),
             tree_node: tree_root.clone(),
-            tree_parent: vec![tree_root],
         })
     }
 }
@@ -141,23 +141,21 @@ impl<'a, R: Register, M: Memory<R>, Inner: ckb_vm::machine::SupportMachine<REG =
                 return self.tree_node.clone();
             }
             if tag_string == String::from("??:??") {
-                self.tree_parent.clear();
                 return self.tree_root.clone();
             }
-            if self.tree_parent.len() != 0 {
-                let p = self.tree_parent.last().unwrap().clone();
-                if tag_string == p.borrow().name {
-                    self.tree_parent.pop();
-                    return p;
+            if self.tree_node.borrow().parent.is_some() {
+                let parent = self.tree_node.borrow().parent.clone().unwrap();
+                if tag_string == parent.borrow().name {
+                    return parent;
                 }
             }
             let chd = Rc::new(RefCell::new(PProfRecordTreeNode {
                 name: tag_string,
+                parent: Some(self.tree_node.clone()),
                 childs: vec![],
                 cycles: 0,
             }));
             self.tree_node.borrow_mut().childs.push(chd.clone());
-            self.tree_parent.push(self.tree_node.clone());
             return chd;
         }();
         self.tree_node.borrow_mut().cycles += cycles;
