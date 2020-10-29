@@ -7,7 +7,7 @@ int fib(int n) {
 }
 
 int main() {
-    if (fib(10) != 55) {
+    if (fib(5) != 5) {
         return 1;
     }
     return 0;

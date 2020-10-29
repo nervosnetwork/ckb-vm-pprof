@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::path::Path;
 use std::rc::Rc;
 
@@ -99,6 +100,7 @@ struct PProfLogger {
     >,
     tree_root: Rc<RefCell<PProfRecordTreeNode>>,
     tree_node: Rc<RefCell<PProfRecordTreeNode>>,
+    ra_dict: HashMap<u64, Rc<RefCell<PProfRecordTreeNode>>>,
 }
 
 impl PProfLogger {
@@ -111,7 +113,8 @@ impl PProfLogger {
         Ok(Self {
             atsl_context: ctx,
             tree_root: tree_root.clone(),
-            tree_node: tree_root.clone(),
+            tree_node: tree_root,
+            ra_dict: HashMap::new(),
         })
     }
 }
@@ -123,32 +126,66 @@ impl<'a, R: Register, M: Memory<R>, Inner: ckb_vm::machine::SupportMachine<REG =
     fn on_step(&mut self, machine: &mut ckb_vm::machine::DefaultMachine<'a, Inner>) {
         let pc = machine.pc().to_u64();
         let decoder = ckb_vm::decoder::build_decoder::<R>(machine.isa(), machine.version());
-        let instruction = decoder.decode(machine.memory_mut(), pc).unwrap();
+        let inst = decoder.decode(machine.memory_mut(), pc).unwrap();
+        let opcode = ckb_vm::instructions::extract_opcode(inst);
         let cycles = machine
             .instruction_cycle_func()
             .as_ref()
-            .map(|f| f(instruction))
+            .map(|f| f(inst))
             .unwrap_or(0);
 
-        let loc = self.atsl_context.find_location(pc).unwrap();
-        let loc_string = sprint_loc_file(&loc);
-        let frame_iter = self.atsl_context.find_frames(pc).unwrap();
-        let fun_string = sprint_fun(frame_iter);
-        let tag_string = format!("{}:{}", loc_string, fun_string);
-
-        self.tree_node = || -> Rc<RefCell<PProfRecordTreeNode>> {
-            if tag_string == self.tree_node.borrow().name {
-                return self.tree_node.clone();
+        if opcode == ckb_vm::instructions::insts::OP_JAL {
+            let inst = ckb_vm::instructions::Utype(inst);
+            if inst.rd() == ckb_vm::registers::RA {
+                let d = pc.overflowing_add(inst.immediate_s() as u64).0 & 0xfffffffffffffffe;
+                let loc = self.atsl_context.find_location(d).unwrap();
+                let loc_string = sprint_loc_file(&loc);
+                let frame_iter = self.atsl_context.find_frames(d).unwrap();
+                let fun_string = sprint_fun(frame_iter);
+                let tag_string = format!("{}:{}", loc_string, fun_string);
+                let chd = Rc::new(RefCell::new(PProfRecordTreeNode {
+                    name: tag_string,
+                    parent: Some(self.tree_node.clone()),
+                    childs: vec![],
+                    cycles: 0,
+                }));
+                self.tree_node.borrow_mut().childs.push(chd.clone());
+                self.ra_dict.insert(pc + 4, self.tree_node.clone());
+                self.tree_node = chd;
             }
-            if tag_string == String::from("??:??") {
-                return self.tree_root.clone();
+        };
+        if opcode == ckb_vm::instructions::insts::OP_VERSION1_JALR {
+            let inst = ckb_vm::instructions::Itype(inst);
+            if inst.rd() == ckb_vm::registers::RA {
+                let d = machine.registers()[inst.rs1()]
+                    .to_u64()
+                    .overflowing_add(inst.immediate_s() as u64)
+                    .0
+                    & 0xfffffffffffffffe;
+                let loc = self.atsl_context.find_location(d).unwrap();
+                let loc_string = sprint_loc_file(&loc);
+                let frame_iter = self.atsl_context.find_frames(d).unwrap();
+                let fun_string = sprint_fun(frame_iter);
+                let tag_string = format!("{}:{}", loc_string, fun_string);
+                let chd = Rc::new(RefCell::new(PProfRecordTreeNode {
+                    name: tag_string,
+                    parent: Some(self.tree_node.clone()),
+                    childs: vec![],
+                    cycles: 0,
+                }));
+                self.tree_node.borrow_mut().childs.push(chd.clone());
+                self.ra_dict.insert(pc + 4, self.tree_node.clone());
+                self.tree_node = chd;
             }
-            if self.tree_node.borrow().parent.is_some() {
-                let parent = self.tree_node.borrow().parent.clone().unwrap();
-                if tag_string == parent.borrow().name {
-                    return parent;
-                }
-            }
+        };
+        if opcode == ckb_vm::instructions::insts::OP_VERSION1_RVC_JALR {
+            let inst = ckb_vm::instructions::Stype(inst);
+            let d = machine.registers()[inst.rs1()].to_u64() & 0xfffffffffffffffe;
+            let loc = self.atsl_context.find_location(d).unwrap();
+            let loc_string = sprint_loc_file(&loc);
+            let frame_iter = self.atsl_context.find_frames(d).unwrap();
+            let fun_string = sprint_fun(frame_iter);
+            let tag_string = format!("{}:{}", loc_string, fun_string);
             let chd = Rc::new(RefCell::new(PProfRecordTreeNode {
                 name: tag_string,
                 parent: Some(self.tree_node.clone()),
@@ -156,8 +193,16 @@ impl<'a, R: Register, M: Memory<R>, Inner: ckb_vm::machine::SupportMachine<REG =
                 cycles: 0,
             }));
             self.tree_node.borrow_mut().childs.push(chd.clone());
-            return chd;
-        }();
+            self.ra_dict.insert(pc + 2, self.tree_node.clone());
+            self.tree_node = chd;
+        };
+        if opcode == ckb_vm::instructions::insts::OP_RVC_JR {
+            let inst = ckb_vm::instructions::Stype(inst);
+            if inst.rs1() == ckb_vm::registers::RA {
+                let d = machine.registers()[ckb_vm::registers::RA].to_u64();
+                self.tree_node = self.ra_dict.get(&d).unwrap().clone();
+            }
+        }
         self.tree_node.borrow_mut().cycles += cycles;
     }
 

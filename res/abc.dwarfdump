@@ -1,0 +1,180 @@
+
+.debug_info
+
+COMPILE_UNIT<header overall offset = 0x00000000>:
+< 0><0x0000000b>  DW_TAG_compile_unit
+                    DW_AT_producer              GNU C17 8.3.0 -mtune=rocket -march=rv64imac -mabi=lp64 -g
+                    DW_AT_language              DW_LANG_C99
+                    DW_AT_name                  res/abc.c
+                    DW_AT_comp_dir              /mnt/sata/src/ckb-vm-pprof
+                    DW_AT_low_pc                0x000101b2
+                    DW_AT_high_pc               <offset-from-lowpc>132
+                    DW_AT_stmt_list             0x00000000
+
+LOCAL_SYMBOLS:
+< 1><0x0000002d>    DW_TAG_variable
+                      DW_AT_name                  n
+                      DW_AT_decl_file             0x00000001 /mnt/sata/src/ckb-vm-pprof/res/abc.c
+                      DW_AT_decl_line             0x00000001
+                      DW_AT_decl_column           0x0000000b
+                      DW_AT_type                  <0x00000048>
+                      DW_AT_external              yes(1)
+                      DW_AT_location              len 0x0009: 03781c010000000000: DW_OP_addr 0x00011c78
+< 1><0x00000041>    DW_TAG_base_type
+                      DW_AT_byte_size             0x00000004
+                      DW_AT_encoding              DW_ATE_signed
+                      DW_AT_name                  int
+< 1><0x00000048>    DW_TAG_const_type
+                      DW_AT_type                  <0x00000041>
+< 1><0x0000004d>    DW_TAG_subprogram
+                      DW_AT_external              yes(1)
+                      DW_AT_name                  main
+                      DW_AT_decl_file             0x00000001 /mnt/sata/src/ckb-vm-pprof/res/abc.c
+                      DW_AT_decl_line             0x0000000f
+                      DW_AT_decl_column           0x00000005
+                      DW_AT_type                  <0x00000041>
+                      DW_AT_low_pc                0x0001020a
+                      DW_AT_high_pc               <offset-from-lowpc>44
+                      DW_AT_frame_base            len 0x0001: 9c: DW_OP_call_frame_cfa
+                      DW_AT_GNU_all_tail_call_sites yes(1)
+< 1><0x0000006b>    DW_TAG_subprogram
+                      DW_AT_external              yes(1)
+                      DW_AT_name                  c
+                      DW_AT_decl_file             0x00000001 /mnt/sata/src/ckb-vm-pprof/res/abc.c
+                      DW_AT_decl_line             0x0000000b
+                      DW_AT_decl_column           0x00000005
+                      DW_AT_type                  <0x00000041>
+                      DW_AT_low_pc                0x000101e2
+                      DW_AT_high_pc               <offset-from-lowpc>40
+                      DW_AT_frame_base            len 0x0001: 9c: DW_OP_call_frame_cfa
+                      DW_AT_GNU_all_tail_call_sites yes(1)
+< 1><0x00000087>    DW_TAG_subprogram
+                      DW_AT_external              yes(1)
+                      DW_AT_name                  b
+                      DW_AT_decl_file             0x00000001 /mnt/sata/src/ckb-vm-pprof/res/abc.c
+                      DW_AT_decl_line             0x00000007
+                      DW_AT_decl_column           0x00000005
+                      DW_AT_type                  <0x00000041>
+                      DW_AT_low_pc                0x000101c2
+                      DW_AT_high_pc               <offset-from-lowpc>32
+                      DW_AT_frame_base            len 0x0001: 9c: DW_OP_call_frame_cfa
+                      DW_AT_GNU_all_tail_call_sites yes(1)
+< 1><0x000000a3>    DW_TAG_subprogram
+                      DW_AT_external              yes(1)
+                      DW_AT_name                  a
+                      DW_AT_decl_file             0x00000001 /mnt/sata/src/ckb-vm-pprof/res/abc.c
+                      DW_AT_decl_line             0x00000003
+                      DW_AT_decl_column           0x00000005
+                      DW_AT_type                  <0x00000041>
+                      DW_AT_low_pc                0x000101b2
+                      DW_AT_high_pc               <offset-from-lowpc>16
+                      DW_AT_frame_base            len 0x0001: 9c: DW_OP_call_frame_cfa
+                      DW_AT_GNU_all_call_sites    yes(1)
+
+.debug_line: line number info for a single cu
+Source lines (from CU-DIE at .debug_info offset 0x0000000b):
+
+            NS new statement, BB new basic block, ET end of text sequence
+            PE prologue end, EB epilogue begin
+            IS=val ISA number, DI=val discriminator value
+<pc>        [lno,col] NS BB ET PE EB IS= DI= uri: "filepath"
+0x000101b2  [   3, 9] NS uri: "/mnt/sata/src/ckb-vm-pprof/res/abc.c"
+0x000101b8  [   4,12] NS
+0x000101ba  [   5, 1] NS
+0x000101c2  [   7, 9] NS
+0x000101ca  [   8,12] NS
+0x000101d2  [   8,16] NS
+0x000101d8  [   9, 1] NS
+0x000101e2  [  11, 9] NS
+0x000101ec  [  12,12] NS
+0x000101f4  [  12,18] NS
+0x000101fa  [  12,16] NS
+0x000101fe  [  13, 1] NS
+0x0001020a  [  15,12] NS
+0x00010214  [  16,12] NS
+0x0001021c  [  16,18] NS
+0x00010222  [  16,16] NS
+0x00010226  [  16,22] NS
+0x0001022a  [  17, 1] NS
+0x00010236  [  17, 1] NS ET
+
+.debug_pubnames
+
+.debug_str
+name at offset 0x00000000, length    9 is 'res/abc.c'
+name at offset 0x0000000a, length   26 is '/mnt/sata/src/ckb-vm-pprof'
+name at offset 0x00000025, length   57 is 'GNU C17 8.3.0 -mtune=rocket -march=rv64imac -mabi=lp64 -g'
+name at offset 0x0000005f, length    4 is 'main'
+
+.debug_aranges
+
+COMPILE_UNIT<header overall offset = 0x00000000>:
+< 0><0x0000000b>  DW_TAG_compile_unit
+                    DW_AT_producer              GNU C17 8.3.0 -mtune=rocket -march=rv64imac -mabi=lp64 -g
+                    DW_AT_language              DW_LANG_C99
+                    DW_AT_name                  res/abc.c
+                    DW_AT_comp_dir              /mnt/sata/src/ckb-vm-pprof
+                    DW_AT_low_pc                0x000101b2
+                    DW_AT_high_pc               <offset-from-lowpc>132
+                    DW_AT_stmt_list             0x00000000
+
+
+arange starts at 0x000101b2, length of 0x00000084, cu_die_offset = 0x0000000b
+arange end
+
+.debug_frame
+
+fde:
+<    0><0x000101b2:0x000101c2><a><cie offset 0x00000000::cie index     0><fde offset 0x00000010 length: 0x00000024><eh offset none>
+        0x000101b2: <off cfa=r2 > 
+        0x000101b4: <off cfa=16(r2) > 
+        0x000101b6: <off cfa=16(r2) > <off r8=-8(cfa) > 
+        0x000101b8: <off cfa=00(r8) > <off r8=-8(cfa) > 
+        0x000101be: <off cfa=00(r8) > 
+        0x000101c0: <off cfa=00(r2) > 
+<    1><0x000101c2:0x000101e2><b><cie offset 0x00000000::cie index     0><fde offset 0x00000038 length: 0x0000002c><eh offset none>
+        0x000101c2: <off cfa=r2 > 
+        0x000101c4: <off cfa=16(r2) > 
+        0x000101c8: <off cfa=16(r2) > <off r1=-8(cfa) > <off r8=-16(cfa) > 
+        0x000101ca: <off cfa=00(r8) > <off r1=-8(cfa) > <off r8=-16(cfa) > 
+        0x000101dc: <off cfa=00(r8) > <off r8=-16(cfa) > 
+        0x000101de: <off cfa=00(r8) > 
+        0x000101e0: <off cfa=00(r2) > 
+<    2><0x000101e2:0x0001020a><c><cie offset 0x00000000::cie index     0><fde offset 0x00000068 length: 0x0000002c><eh offset none>
+        0x000101e2: <off cfa=r2 > 
+        0x000101e4: <off cfa=32(r2) > 
+        0x000101ea: <off cfa=32(r2) > <off r1=-8(cfa) > <off r8=-16(cfa) > <off r9=-24(cfa) > 
+        0x000101ec: <off cfa=00(r8) > <off r1=-8(cfa) > <off r8=-16(cfa) > <off r9=-24(cfa) > 
+        0x00010202: <off cfa=00(r8) > <off r8=-16(cfa) > <off r9=-24(cfa) > 
+        0x00010204: <off cfa=00(r8) > <off r9=-24(cfa) > 
+        0x00010206: <off cfa=00(r8) > 
+        0x00010208: <off cfa=00(r2) > 
+<    3><0x0001020a:0x00010236><main><cie offset 0x00000000::cie index     0><fde offset 0x00000098 length: 0x0000002c><eh offset none>
+        0x0001020a: <off cfa=r2 > 
+        0x0001020c: <off cfa=32(r2) > 
+        0x00010212: <off cfa=32(r2) > <off r1=-8(cfa) > <off r8=-16(cfa) > <off r9=-24(cfa) > 
+        0x00010214: <off cfa=00(r8) > <off r1=-8(cfa) > <off r8=-16(cfa) > <off r9=-24(cfa) > 
+        0x0001022e: <off cfa=00(r8) > <off r8=-16(cfa) > <off r9=-24(cfa) > 
+        0x00010230: <off cfa=00(r8) > <off r9=-24(cfa) > 
+        0x00010232: <off cfa=00(r8) > 
+        0x00010234: <off cfa=00(r2) > 
+
+cie:
+<    0>	version				1
+	cie section offset		0 0x00000000
+	augmentation			
+	code_alignment_factor		1
+	data_alignment_factor		-4
+	return_address_register		1
+	bytes of initial instructions	3
+	cie length			12
+	initial instructions
+	 0 DW_CFA_def_cfa_register r2
+	 2 DW_CFA_nop
+
+.debug_static_func
+
+.debug_static_vars
+
+.debug_weaknames
+

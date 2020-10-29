@@ -6,21 +6,21 @@ COMPILE_UNIT<header overall offset = 0x00000000>:
                     DW_AT_producer              GNU C17 8.3.0 -mtune=rocket -march=rv64imac -mabi=lp64 -g
                     DW_AT_language              DW_LANG_C99
                     DW_AT_name                  res/fib.c
-                    DW_AT_comp_dir              /src/ckb-vm-pprof
+                    DW_AT_comp_dir              /mnt/sata/src/ckb-vm-pprof
                     DW_AT_low_pc                0x000101b2
-                    DW_AT_high_pc               <offset-from-lowpc>136
+                    DW_AT_high_pc               <offset-from-lowpc>134
                     DW_AT_stmt_list             0x00000000
 
 LOCAL_SYMBOLS:
 < 1><0x0000002d>    DW_TAG_subprogram
                       DW_AT_external              yes(1)
                       DW_AT_name                  main
-                      DW_AT_decl_file             0x00000001 /src/ckb-vm-pprof/res/fib.c
+                      DW_AT_decl_file             0x00000001 /mnt/sata/src/ckb-vm-pprof/res/fib.c
                       DW_AT_decl_line             0x00000009
                       DW_AT_decl_column           0x00000005
                       DW_AT_type                  <0x0000004b>
                       DW_AT_low_pc                0x00010210
-                      DW_AT_high_pc               <offset-from-lowpc>42
+                      DW_AT_high_pc               <offset-from-lowpc>40
                       DW_AT_frame_base            len 0x0001: 9c: DW_OP_call_frame_cfa
                       DW_AT_GNU_all_tail_call_sites yes(1)
 < 1><0x0000004b>    DW_TAG_base_type
@@ -30,7 +30,7 @@ LOCAL_SYMBOLS:
 < 1><0x00000052>    DW_TAG_subprogram
                       DW_AT_external              yes(1)
                       DW_AT_name                  fib
-                      DW_AT_decl_file             0x00000001 /src/ckb-vm-pprof/res/fib.c
+                      DW_AT_decl_file             0x00000001 /mnt/sata/src/ckb-vm-pprof/res/fib.c
                       DW_AT_decl_line             0x00000001
                       DW_AT_decl_column           0x00000005
                       DW_AT_prototyped            yes(1)
@@ -41,7 +41,7 @@ LOCAL_SYMBOLS:
                       DW_AT_GNU_all_tail_call_sites yes(1)
 < 2><0x00000070>      DW_TAG_formal_parameter
                         DW_AT_name                  n
-                        DW_AT_decl_file             0x00000001 /src/ckb-vm-pprof/res/fib.c
+                        DW_AT_decl_file             0x00000001 /mnt/sata/src/ckb-vm-pprof/res/fib.c
                         DW_AT_decl_line             0x00000001
                         DW_AT_decl_column           0x0000000d
                         DW_AT_type                  <0x0000004b>
@@ -54,7 +54,7 @@ Source lines (from CU-DIE at .debug_info offset 0x0000000b):
             PE prologue end, EB epilogue begin
             IS=val ISA number, DI=val discriminator value
 <pc>        [lno,col] NS BB ET PE EB IS= DI= uri: "filepath"
-0x000101b2  [   1,16] NS uri: "/src/ckb-vm-pprof/res/fib.c"
+0x000101b2  [   1,16] NS uri: "/mnt/sata/src/ckb-vm-pprof/res/fib.c"
 0x000101c2  [   2, 8] NS
 0x000101ca  [   2,16] NS DI=0x1
 0x000101d8  [   3,16] NS
@@ -65,18 +65,18 @@ Source lines (from CU-DIE at .debug_info offset 0x0000000b):
 0x00010210  [   9,12] NS
 0x00010218  [  10, 9] NS
 0x00010220  [  10, 8] NS
-0x0001022a  [  11,16] NS
-0x0001022e  [  13,12] NS
-0x00010230  [  14, 1] NS
-0x0001023a  [  14, 1] NS ET
+0x00010228  [  11,16] NS
+0x0001022c  [  13,12] NS
+0x0001022e  [  14, 1] NS
+0x00010238  [  14, 1] NS ET
 
 .debug_pubnames
 
 .debug_str
 name at offset 0x00000000, length    9 is 'res/fib.c'
-name at offset 0x0000000a, length    4 is 'main'
-name at offset 0x0000000f, length   57 is 'GNU C17 8.3.0 -mtune=rocket -march=rv64imac -mabi=lp64 -g'
-name at offset 0x00000049, length   17 is '/src/ckb-vm-pprof'
+name at offset 0x0000000a, length   26 is '/mnt/sata/src/ckb-vm-pprof'
+name at offset 0x00000025, length   57 is 'GNU C17 8.3.0 -mtune=rocket -march=rv64imac -mabi=lp64 -g'
+name at offset 0x0000005f, length    4 is 'main'
 
 .debug_aranges
 
@@ -85,13 +85,13 @@ COMPILE_UNIT<header overall offset = 0x00000000>:
                     DW_AT_producer              GNU C17 8.3.0 -mtune=rocket -march=rv64imac -mabi=lp64 -g
                     DW_AT_language              DW_LANG_C99
                     DW_AT_name                  res/fib.c
-                    DW_AT_comp_dir              /src/ckb-vm-pprof
+                    DW_AT_comp_dir              /mnt/sata/src/ckb-vm-pprof
                     DW_AT_low_pc                0x000101b2
-                    DW_AT_high_pc               <offset-from-lowpc>136
+                    DW_AT_high_pc               <offset-from-lowpc>134
                     DW_AT_stmt_list             0x00000000
 
 
-arange starts at 0x000101b2, length of 0x00000088, cu_die_offset = 0x0000000b
+arange starts at 0x000101b2, length of 0x00000086, cu_die_offset = 0x0000000b
 arange end
 
 .debug_frame
@@ -106,14 +106,14 @@ fde:
         0x0001020a: <off cfa=00(r8) > <off r9=-24(cfa) > 
         0x0001020c: <off cfa=00(r8) > 
         0x0001020e: <off cfa=00(r2) > 
-<    1><0x00010210:0x0001023a><main><cie offset 0x00000000::cie index     0><fde offset 0x00000040 length: 0x0000002c><eh offset none>
+<    1><0x00010210:0x00010238><main><cie offset 0x00000000::cie index     0><fde offset 0x00000040 length: 0x0000002c><eh offset none>
         0x00010210: <off cfa=r2 > 
         0x00010212: <off cfa=16(r2) > 
         0x00010216: <off cfa=16(r2) > <off r1=-8(cfa) > <off r8=-16(cfa) > 
         0x00010218: <off cfa=00(r8) > <off r1=-8(cfa) > <off r8=-16(cfa) > 
-        0x00010234: <off cfa=00(r8) > <off r8=-16(cfa) > 
-        0x00010236: <off cfa=00(r8) > 
-        0x00010238: <off cfa=00(r2) > 
+        0x00010232: <off cfa=00(r8) > <off r8=-16(cfa) > 
+        0x00010234: <off cfa=00(r8) > 
+        0x00010236: <off cfa=00(r2) > 
 
 cie:
 <    0>	version				1
