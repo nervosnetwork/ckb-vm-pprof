@@ -7,6 +7,7 @@ use std::rc::Rc;
 use ckb_vm::{CoreMachine, Memory, Register};
 
 mod cost_model;
+mod machine;
 
 #[allow(dead_code)]
 fn sprint_loc_file_line(loc: &Option<addr2line::Location>) -> String {
@@ -120,8 +121,7 @@ impl PProfLogger {
 }
 
 impl<'a, R: Register, M: Memory<R>, Inner: ckb_vm::machine::SupportMachine<REG = R, MEM = M>>
-    ckb_vm::machine::pprof::PProfLogger<ckb_vm::machine::DefaultMachine<'a, Inner>>
-    for PProfLogger
+    machine::PProfLogger<ckb_vm::machine::DefaultMachine<'a, Inner>> for PProfLogger
 {
     fn on_step(&mut self, machine: &mut ckb_vm::machine::DefaultMachine<'a, Inner>) {
         let pc = machine.pc().to_u64();
@@ -248,7 +248,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .instruction_cycle_func(Box::new(cost_model::instruction_cycles));
     let default_machine = default_machine_builder.build();
     let pprof_func_provider = Box::new(PProfLogger::new(String::from(fl_bin))?);
-    let mut machine = ckb_vm::PProfMachine::new(default_machine, pprof_func_provider);
+    let mut machine = machine::PProfMachine::new(default_machine, pprof_func_provider);
     let mut args = vec![fl_bin.to_string().into()];
     args.append(
         &mut fl_arg

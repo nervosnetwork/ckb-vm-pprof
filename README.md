@@ -23,7 +23,7 @@ int main() {
 }
 ```
 
-We should take the `-g` option on compiling for save the debugging information:
+We should take the `-g` option on compiling for saving the debugging information:
 
 ```sh
 $ riscv64-unknown-elf-gcc -g -o res/fib res/fib.c
