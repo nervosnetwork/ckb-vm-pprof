@@ -240,7 +240,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let code = bytes::Bytes::from(code_data);
 
     let default_core_machine = ckb_vm::DefaultCoreMachine::<u64, ckb_vm::SparseMemory<u64>>::new(
-        ckb_vm::ISA_IMAC | ckb_vm::ISA_B,
+        ckb_vm::ISA_IMC | ckb_vm::ISA_B,
         ckb_vm::machine::VERSION1,
         1 << 32,
     );
