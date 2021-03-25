@@ -14,7 +14,7 @@ pub struct PProfMachine<'a, Inner> {
     pprof_logger: Box<dyn PProfLogger<DefaultMachine<'a, Inner>>>,
 }
 
-impl<R: Register, M: Memory<R>, Inner: SupportMachine<REG = R, MEM = M>> CoreMachine
+impl<R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> CoreMachine
     for PProfMachine<'_, Inner>
 {
     type REG = <Inner as CoreMachine>::REG;
@@ -53,7 +53,7 @@ impl<R: Register, M: Memory<R>, Inner: SupportMachine<REG = R, MEM = M>> CoreMac
     }
 }
 
-impl<R: Register, M: Memory<R>, Inner: SupportMachine<REG = R, MEM = M>> Machine
+impl<R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> Machine
     for PProfMachine<'_, Inner>
 {
     fn ecall(&mut self) -> Result<(), Error> {
@@ -65,7 +65,7 @@ impl<R: Register, M: Memory<R>, Inner: SupportMachine<REG = R, MEM = M>> Machine
     }
 }
 
-impl<'a, R: Register, M: Memory<R>, Inner: SupportMachine<REG = R, MEM = M>>
+impl<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>>
     PProfMachine<'a, Inner>
 {
     pub fn new(

@@ -120,7 +120,7 @@ impl PProfLogger {
     }
 }
 
-impl<'a, R: Register, M: Memory<R>, Inner: ckb_vm::machine::SupportMachine<REG = R, MEM = M>>
+impl<'a, R: Register, M: Memory<REG = R>, Inner: ckb_vm::machine::SupportMachine<REG = R, MEM = M>>
     machine::PProfLogger<ckb_vm::machine::DefaultMachine<'a, Inner>> for PProfLogger
 {
     fn on_step(&mut self, machine: &mut ckb_vm::machine::DefaultMachine<'a, Inner>) {
