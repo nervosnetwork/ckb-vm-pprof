@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::rc::Rc;
 
-use ckb_vm::{CoreMachine, Memory, Register};
+use ckb_vm::{CoreMachine, Memory, Register, SupportMachine};
 
 mod cost_model;
 mod machine;
@@ -27,7 +27,20 @@ fn sprint_loc_file_line(loc: &Option<addr2line::Location>) -> String {
     }
 }
 
-fn sprint_loc_file(loc: &Option<addr2line::Location>) -> String {
+fn sprint_loc_file(loc: &Option<addr2line::Location>, enable_trace: bool) -> String {
+    if enable_trace {
+        if let Some(loc2) = loc {
+            if let Some(file) = loc2.file {
+                if let Some(line) = loc2.line {
+                    println!("[trace] {} : {}", file, line);
+                } else {
+                    println!("[trace] {} : ???", file);
+                }
+            } else {
+                println!("[trace] ???");
+            }
+        }
+    }
     if let Some(ref loc) = *loc {
         let file = loc.file.as_ref().unwrap();
         let path = Path::new(file);
@@ -102,10 +115,11 @@ struct PProfLogger {
     tree_root: Rc<RefCell<PProfRecordTreeNode>>,
     tree_node: Rc<RefCell<PProfRecordTreeNode>>,
     ra_dict: HashMap<u64, Rc<RefCell<PProfRecordTreeNode>>>,
+    enable_trace: bool,
 }
 
 impl PProfLogger {
-    fn new(filename: String) -> Result<Self, Box<dyn std::error::Error>> {
+    fn new(filename: String, enable_trace: bool) -> Result<Self, Box<dyn std::error::Error>> {
         let file = std::fs::File::open(filename)?;
         let mmap = unsafe { memmap::Mmap::map(&file)? };
         let object = object::File::parse(&*mmap)?;
@@ -116,12 +130,17 @@ impl PProfLogger {
             tree_root: tree_root.clone(),
             tree_node: tree_root,
             ra_dict: HashMap::new(),
+            enable_trace,
         })
     }
 }
 
-impl<'a, R: Register, M: Memory<REG = R>, Inner: ckb_vm::machine::SupportMachine<REG = R, MEM = M>>
-    machine::PProfLogger<ckb_vm::machine::DefaultMachine<'a, Inner>> for PProfLogger
+impl<
+        'a,
+        R: Register,
+        M: Memory<REG = R>,
+        Inner: ckb_vm::machine::SupportMachine<REG = R, MEM = M>,
+    > machine::PProfLogger<ckb_vm::machine::DefaultMachine<'a, Inner>> for PProfLogger
 {
     fn on_step(&mut self, machine: &mut ckb_vm::machine::DefaultMachine<'a, Inner>) {
         let pc = machine.pc().to_u64();
@@ -139,7 +158,7 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: ckb_vm::machine::SupportMachine
             if inst.rd() == ckb_vm::registers::RA {
                 let d = pc.overflowing_add(inst.immediate_s() as u64).0 & 0xfffffffffffffffe;
                 let loc = self.atsl_context.find_location(d).unwrap();
-                let loc_string = sprint_loc_file(&loc);
+                let loc_string = sprint_loc_file(&loc, self.enable_trace);
                 let frame_iter = self.atsl_context.find_frames(d).unwrap();
                 let fun_string = sprint_fun(frame_iter);
                 let tag_string = format!("{}:{}", loc_string, fun_string);
@@ -163,7 +182,7 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: ckb_vm::machine::SupportMachine
                     .0
                     & 0xfffffffffffffffe;
                 let loc = self.atsl_context.find_location(d).unwrap();
-                let loc_string = sprint_loc_file(&loc);
+                let loc_string = sprint_loc_file(&loc, self.enable_trace);
                 let frame_iter = self.atsl_context.find_frames(d).unwrap();
                 let fun_string = sprint_fun(frame_iter);
                 let tag_string = format!("{}:{}", loc_string, fun_string);
@@ -182,7 +201,7 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: ckb_vm::machine::SupportMachine
             let inst = ckb_vm::instructions::Stype(inst);
             let d = machine.registers()[inst.rs1()].to_u64() & 0xfffffffffffffffe;
             let loc = self.atsl_context.find_location(d).unwrap();
-            let loc_string = sprint_loc_file(&loc);
+            let loc_string = sprint_loc_file(&loc, self.enable_trace);
             let frame_iter = self.atsl_context.find_frames(d).unwrap();
             let fun_string = sprint_fun(frame_iter);
             let tag_string = format!("{}:{}", loc_string, fun_string);
@@ -207,10 +226,12 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: ckb_vm::machine::SupportMachine
     }
 
     fn on_exit(&mut self, machine: &mut ckb_vm::machine::DefaultMachine<'a, Inner>) {
-        assert_eq!(machine.exit_code(), 0);
-        self.tree_root
-            .borrow()
-            .display_flamegraph("", &mut std::io::stdout());
+        if !self.enable_trace {
+            assert_eq!(machine.exit_code(), 0);
+            self.tree_root
+                .borrow()
+                .display_flamegraph("", &mut std::io::stdout());
+        }
     }
 }
 
@@ -232,9 +253,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .help("Pass arguments to binary")
                 .multiple(true),
         )
+        .arg(
+            clap::Arg::with_name("trace")
+                .long("trace")
+                .value_name("trace mode")
+                .takes_value(false)
+                .help("Enable trace mode")
+                .required(false),
+        )
         .get_matches();
     let fl_bin = flag_parser.value_of("bin").unwrap();
     let fl_arg: Vec<_> = flag_parser.values_of("arg").unwrap_or_default().collect();
+    let enable_trace = flag_parser.is_present("trace");
 
     let code_data = std::fs::read(fl_bin)?;
     let code = bytes::Bytes::from(code_data);
@@ -247,7 +277,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let default_machine_builder = ckb_vm::DefaultMachineBuilder::new(default_core_machine)
         .instruction_cycle_func(Box::new(cost_model::instruction_cycles));
     let default_machine = default_machine_builder.build();
-    let pprof_func_provider = Box::new(PProfLogger::new(String::from(fl_bin))?);
+    let pprof_func_provider = Box::new(PProfLogger::new(String::from(fl_bin), enable_trace)?);
     let mut machine = machine::PProfMachine::new(default_machine, pprof_func_provider);
     let mut args = vec![fl_bin.to_string().into()];
     args.append(
@@ -259,5 +289,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     machine.load_program(&code, &args).unwrap();
     machine.run()?;
 
+    if enable_trace {
+        let code = machine.machine.exit_code();
+        println!("[trace] total cycles = {}", machine.machine.cycles());
+        if code != 0 {
+            println!("[trace] exit code is = {} !!!, not zero", code);
+        }
+    }
     Ok(())
 }
