@@ -60,9 +60,9 @@ checksum = "ae44d1a3d5a19df61dd0c8beb138458ac2a53a7ac09eba97d55592540004306b"
 
 [[package]]
 name = "bytes"
-version = "0.5.6"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e4cec68f03f32e44924783795810fa50a7035d8c8ebe78580ad7e6c703fba38"
+checksum = "b700ce4376041dcd0a327fd0097c41095743c4c8af8887265942faf1100bd040"
 
 [[package]]
 name = "cc"
@@ -79,7 +79,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "ckb-vm"
 version = "0.19.1"
-source = "git+https://github.com/nervosnetwork/ckb-vm?branch=develop#3bc375e3ad56d324b2521c0bf4dd1fa64f592560"
+source = "git+https://github.com/mohanson/ckb-vm?branch=instruction_design#ce224a5eb66f83fd42a3768acefebf0588578a68"
 dependencies = [
  "byteorder",
  "bytes",
@@ -87,7 +87,7 @@ dependencies = [
  "ckb-vm-definitions",
  "derive_more",
  "goblin 0.2.3",
- "goblin 0.3.4",
+ "goblin 0.4.0",
  "libc",
  "mapr",
  "rand",
@@ -98,7 +98,7 @@ dependencies = [
 [[package]]
 name = "ckb-vm-definitions"
 version = "0.19.1"
-source = "git+https://github.com/nervosnetwork/ckb-vm?branch=develop#3bc375e3ad56d324b2521c0bf4dd1fa64f592560"
+source = "git+https://github.com/mohanson/ckb-vm?branch=instruction_design#ce224a5eb66f83fd42a3768acefebf0588578a68"
 
 [[package]]
 name = "ckb-vm-pprof"
@@ -215,9 +215,9 @@ dependencies = [
 
 [[package]]
 name = "goblin"
-version = "0.3.4"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "669cdc3826f69a51d3f8fc3f86de81c2378110254f678b8407977736122057a4"
+checksum = "532a09cd3df2c6bbfc795fb0434bff8f22255d1d07328180e918a2e6ce122d4d"
 dependencies = [
  "log",
  "plain",
