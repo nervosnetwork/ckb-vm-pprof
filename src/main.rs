@@ -4,8 +4,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::rc::Rc;
 
-use bytes::Bytes;
-use ckb_vm::{instructions::instruction_length, CoreMachine, Memory, Register};
+use ckb_vm::{instructions::instruction_length, Bytes, CoreMachine, Memory, Register};
 
 mod cost_model;
 mod machine;

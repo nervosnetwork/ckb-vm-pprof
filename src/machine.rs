@@ -1,6 +1,5 @@
-use bytes::Bytes;
 use ckb_vm::{
-    decoder::build_decoder, instructions::Register, memory::Memory, CoreMachine,
+    decoder::build_decoder, instructions::Register, memory::Memory, Bytes, CoreMachine,
     DefaultMachine, Error, Machine, SupportMachine,
 };
 

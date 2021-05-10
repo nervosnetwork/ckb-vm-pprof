@@ -8,8 +8,7 @@ edition = "2018"
 
 [dependencies]
 addr2line = "0.13.0"
-bytes = "1"
-ckb-vm = { git="https://github.com/mohanson/ckb-vm", branch="instruction_design" }
+ckb-vm = { git="https://github.com/nervosnetwork/ckb-vm", branch="develop" }
 clap = "2.33"
 memmap = "0.7"
 object = "0.20"

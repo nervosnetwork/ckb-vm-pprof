@@ -79,7 +79,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "ckb-vm"
 version = "0.19.1"
-source = "git+https://github.com/mohanson/ckb-vm?branch=instruction_design#ce224a5eb66f83fd42a3768acefebf0588578a68"
+source = "git+https://github.com/nervosnetwork/ckb-vm?branch=develop#12b983cc1b8f7d71c129b2ff280033f732a845ca"
 dependencies = [
  "byteorder",
  "bytes",
@@ -98,14 +98,13 @@ dependencies = [
 [[package]]
 name = "ckb-vm-definitions"
 version = "0.19.1"
-source = "git+https://github.com/mohanson/ckb-vm?branch=instruction_design#ce224a5eb66f83fd42a3768acefebf0588578a68"
+source = "git+https://github.com/nervosnetwork/ckb-vm?branch=develop#12b983cc1b8f7d71c129b2ff280033f732a845ca"
 
 [[package]]
 name = "ckb-vm-pprof"
 version = "0.1.0"
 dependencies = [
  "addr2line",
- "bytes",
  "ckb-vm",
  "clap",
  "memmap",
