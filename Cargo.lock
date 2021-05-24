@@ -78,8 +78,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "ckb-vm"
-version = "0.19.1"
-source = "git+https://github.com/nervosnetwork/ckb-vm?branch=develop#12b983cc1b8f7d71c129b2ff280033f732a845ca"
+version = "0.20.0-alpha"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca63668a4a96a895c5324edbc3f827781d043a79d82789d590f7d611ce9dff4a"
 dependencies = [
  "byteorder",
  "bytes",
@@ -97,8 +98,9 @@ dependencies = [
 
 [[package]]
 name = "ckb-vm-definitions"
-version = "0.19.1"
-source = "git+https://github.com/nervosnetwork/ckb-vm?branch=develop#12b983cc1b8f7d71c129b2ff280033f732a845ca"
+version = "0.20.0-alpha"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1983bc408f08c00d8907e602f24bb54caf7b9aadbdbb20624d24a2a2fc6e3efb"
 
 [[package]]
 name = "ckb-vm-pprof"

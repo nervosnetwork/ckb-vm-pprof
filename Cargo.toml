@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 addr2line = "0.13.0"
-ckb-vm = { git="https://github.com/nervosnetwork/ckb-vm", branch="develop" }
+ckb-vm = "0.20.0-alpha"
 clap = "2.33"
 memmap = "0.7"
 object = "0.20"

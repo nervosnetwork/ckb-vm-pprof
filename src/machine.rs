@@ -23,8 +23,12 @@ impl<R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> C
         &self.machine.pc()
     }
 
-    fn set_pc(&mut self, next_pc: Self::REG) {
-        self.machine.set_pc(next_pc)
+    fn update_pc(&mut self, pc: Self::REG) {
+        self.machine.update_pc(pc)
+    }
+
+    fn commit_pc(&mut self) {
+        self.machine.commit_pc()
     }
 
     fn memory(&self) -> &Self::MEM {
