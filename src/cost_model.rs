@@ -3,6 +3,8 @@ use ckb_vm::{
     Instruction,
 };
 
+const CONTEXT_SWITCH: u64 = 500;
+
 pub fn instruction_cycles(i: Instruction) -> u64 {
     match extract_opcode(i) {
         // IMC
@@ -24,8 +26,8 @@ pub fn instruction_cycles(i: Instruction) -> u64 {
         insts::OP_BLT => 3,
         insts::OP_BLTU => 3,
         insts::OP_BNE => 3,
-        insts::OP_EBREAK => 500,
-        insts::OP_ECALL => 500,
+        insts::OP_EBREAK => CONTEXT_SWITCH,
+        insts::OP_ECALL => CONTEXT_SWITCH,
         insts::OP_JAL => 3,
         insts::OP_MUL => 5,
         insts::OP_MULW => 5,
@@ -41,7 +43,43 @@ pub fn instruction_cycles(i: Instruction) -> u64 {
         insts::OP_REMU => 32,
         insts::OP_REMUW => 32,
         // B
-        // ...
+        insts::OP_GREV => CONTEXT_SWITCH + 20,
+        insts::OP_GREVI => CONTEXT_SWITCH + 20,
+        insts::OP_GREVW => CONTEXT_SWITCH + 18,
+        insts::OP_GREVIW => CONTEXT_SWITCH + 18,
+        insts::OP_SHFL => CONTEXT_SWITCH + 20,
+        insts::OP_UNSHFL => CONTEXT_SWITCH + 20,
+        insts::OP_SHFLI => CONTEXT_SWITCH + 20,
+        insts::OP_UNSHFLI => CONTEXT_SWITCH + 20,
+        insts::OP_SHFLW => CONTEXT_SWITCH + 18,
+        insts::OP_UNSHFLW => CONTEXT_SWITCH + 18,
+        insts::OP_GORC => CONTEXT_SWITCH + 20,
+        insts::OP_GORCI => CONTEXT_SWITCH + 20,
+        insts::OP_GORCW => CONTEXT_SWITCH + 18,
+        insts::OP_GORCIW => CONTEXT_SWITCH + 18,
+        insts::OP_BFP => CONTEXT_SWITCH + 15,
+        insts::OP_BFPW => CONTEXT_SWITCH + 15,
+        insts::OP_BDEP => CONTEXT_SWITCH + 350,
+        insts::OP_BEXT => CONTEXT_SWITCH + 270,
+        insts::OP_BDEPW => CONTEXT_SWITCH + 180,
+        insts::OP_BEXTW => CONTEXT_SWITCH + 140,
+        insts::OP_CLMUL => CONTEXT_SWITCH + 320,
+        insts::OP_CLMULR => CONTEXT_SWITCH + 380,
+        insts::OP_CLMULH => CONTEXT_SWITCH + 400,
+        insts::OP_CLMULW => CONTEXT_SWITCH + 60,
+        insts::OP_CLMULRW => CONTEXT_SWITCH + 60,
+        insts::OP_CLMULHW => CONTEXT_SWITCH + 60,
+        insts::OP_CRC32B => CONTEXT_SWITCH + 15,
+        insts::OP_CRC32H => CONTEXT_SWITCH + 30,
+        insts::OP_CRC32W => CONTEXT_SWITCH + 45,
+        insts::OP_CRC32D => CONTEXT_SWITCH + 60,
+        insts::OP_CRC32CB => CONTEXT_SWITCH + 15,
+        insts::OP_CRC32CH => CONTEXT_SWITCH + 30,
+        insts::OP_CRC32CW => CONTEXT_SWITCH + 45,
+        insts::OP_CRC32CD => CONTEXT_SWITCH + 60,
+        insts::OP_BMATFLIP => CONTEXT_SWITCH + 40,
+        insts::OP_BMATOR => CONTEXT_SWITCH + 500,
+        insts::OP_BMATXOR => CONTEXT_SWITCH + 800,
         // MOP
         insts::OP_WIDE_MUL => 5,
         insts::OP_WIDE_MULU => 5,
