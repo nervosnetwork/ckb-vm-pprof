@@ -1,6 +1,6 @@
 use ckb_vm::{
-    decoder::build_decoder, instructions::Register, memory::Memory, Bytes, CoreMachine,
-    DefaultMachine, Error, Machine, SupportMachine,
+    decoder::build_decoder, instructions::Register, memory::Memory, Bytes, CoreMachine, DefaultMachine, Error, Machine,
+    SupportMachine,
 };
 
 pub trait PProfLogger<Mac> {
@@ -13,9 +13,7 @@ pub struct PProfMachine<'a, Inner> {
     pprof_logger: Box<dyn PProfLogger<DefaultMachine<'a, Inner>>>,
 }
 
-impl<R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> CoreMachine
-    for PProfMachine<'_, Inner>
-{
+impl<R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> CoreMachine for PProfMachine<'_, Inner> {
     type REG = <Inner as CoreMachine>::REG;
     type MEM = <Inner as CoreMachine>::MEM;
 
@@ -56,9 +54,7 @@ impl<R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> C
     }
 }
 
-impl<R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> Machine
-    for PProfMachine<'_, Inner>
-{
+impl<R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> Machine for PProfMachine<'_, Inner> {
     fn ecall(&mut self) -> Result<(), Error> {
         self.machine.ecall()
     }
@@ -68,17 +64,12 @@ impl<R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> M
     }
 }
 
-impl<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>>
-    PProfMachine<'a, Inner>
-{
+impl<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> PProfMachine<'a, Inner> {
     pub fn new(
         machine: DefaultMachine<'a, Inner>,
         pprof_logger: Box<dyn PProfLogger<DefaultMachine<'a, Inner>>>,
     ) -> Self {
-        Self {
-            machine,
-            pprof_logger,
-        }
+        Self { machine, pprof_logger }
     }
 
     pub fn load_program(&mut self, program: &Bytes, args: &[Bytes]) -> Result<u64, Error> {

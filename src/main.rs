@@ -96,9 +96,8 @@ impl PProfRecordTreeNode {
 
 // Main handler.
 struct PProfLogger {
-    atsl_context: addr2line::Context<
-        addr2line::gimli::EndianReader<addr2line::gimli::RunTimeEndian, std::rc::Rc<[u8]>>,
-    >,
+    atsl_context:
+        addr2line::Context<addr2line::gimli::EndianReader<addr2line::gimli::RunTimeEndian, std::rc::Rc<[u8]>>>,
     tree_root: Rc<RefCell<PProfRecordTreeNode>>,
     tree_node: Rc<RefCell<PProfRecordTreeNode>>,
     ra_dict: HashMap<u64, Rc<RefCell<PProfRecordTreeNode>>>,
@@ -120,12 +119,8 @@ impl PProfLogger {
     }
 }
 
-impl<
-        'a,
-        R: Register,
-        M: Memory<REG = R>,
-        Inner: ckb_vm::machine::SupportMachine<REG = R, MEM = M>,
-    > machine::PProfLogger<ckb_vm::machine::DefaultMachine<'a, Inner>> for PProfLogger
+impl<'a, R: Register, M: Memory<REG = R>, Inner: ckb_vm::machine::SupportMachine<REG = R, MEM = M>>
+    machine::PProfLogger<ckb_vm::machine::DefaultMachine<'a, Inner>> for PProfLogger
 {
     fn on_step(&mut self, machine: &mut ckb_vm::machine::DefaultMachine<'a, Inner>) {
         let pc = machine.pc().to_u64();
@@ -133,20 +128,18 @@ impl<
         let inst = decoder.decode(machine.memory_mut(), pc).unwrap();
         let inst_length = instruction_length(inst) as u64;
         let opcode = ckb_vm::instructions::extract_opcode(inst);
-        let cycles = machine
-            .instruction_cycle_func()
-            .as_ref()
-            .map(|f| f(inst))
-            .unwrap_or(0);
+        let cycles = machine.instruction_cycle_func().as_ref().map(|f| f(inst)).unwrap_or(0);
+        self.tree_node.borrow_mut().cycles += cycles;
         if opcode == ckb_vm::instructions::insts::OP_JAL {
             let inst = ckb_vm::instructions::Utype(inst);
             // The standard software calling convention uses x1 as the return address register and x5 as an alternate
             // link register.
             if inst.rd() == ckb_vm::registers::RA || inst.rd() == ckb_vm::registers::T0 {
-                let link = pc.overflowing_add(inst.immediate_s() as u64).0 & 0xfffffffffffffffe;
-                let loc = self.atsl_context.find_location(link).unwrap();
+                let addr = pc.overflowing_add(inst.immediate_s() as u64).0 & 0xfffffffffffffffe;
+                let link = pc + inst_length;
+                let loc = self.atsl_context.find_location(addr).unwrap();
                 let loc_string = sprint_loc_file(&loc);
-                let frame_iter = self.atsl_context.find_frames(link).unwrap();
+                let frame_iter = self.atsl_context.find_frames(addr).unwrap();
                 let fun_string = sprint_fun(frame_iter);
                 let tag_string = format!("{}:{}", loc_string, fun_string);
                 let chd = Rc::new(RefCell::new(PProfRecordTreeNode {
@@ -156,24 +149,21 @@ impl<
                     cycles: 0,
                 }));
                 self.tree_node.borrow_mut().childs.push(chd.clone());
-                self.ra_dict
-                    .insert(pc + inst_length, self.tree_node.clone());
+                self.ra_dict.insert(link, self.tree_node.clone());
                 self.tree_node = chd;
             }
         };
         if opcode == ckb_vm::instructions::insts::OP_JALR {
             let inst = ckb_vm::instructions::Itype(inst);
-            let link = machine.registers()[inst.rs1()]
-                .to_u64()
-                .overflowing_add(inst.immediate_s() as u64)
-                .0
-                & 0xfffffffffffffffe;
-            if self.ra_dict.contains_key(&link) {
-                self.tree_node = self.ra_dict.get(&link).unwrap().clone();
+            let base = machine.registers()[inst.rs1()].to_u64();
+            let addr = base.wrapping_add(inst.immediate_s() as u64) & 0xfffffffffffffffe;
+            let link = pc + inst_length;
+            if self.ra_dict.contains_key(&addr) {
+                self.tree_node = self.ra_dict.get(&addr).unwrap().clone();
             } else {
-                let loc = self.atsl_context.find_location(link).unwrap();
+                let loc = self.atsl_context.find_location(addr).unwrap();
                 let loc_string = sprint_loc_file(&loc);
-                let frame_iter = self.atsl_context.find_frames(link).unwrap();
+                let frame_iter = self.atsl_context.find_frames(addr).unwrap();
                 let fun_string = sprint_fun(frame_iter);
                 let tag_string = format!("{}:{}", loc_string, fun_string);
                 let chd = Rc::new(RefCell::new(PProfRecordTreeNode {
@@ -183,19 +173,15 @@ impl<
                     cycles: 0,
                 }));
                 self.tree_node.borrow_mut().childs.push(chd.clone());
-                self.ra_dict
-                    .insert(pc + inst_length, self.tree_node.clone());
+                self.ra_dict.insert(link, self.tree_node.clone());
                 self.tree_node = chd;
             }
         };
-        self.tree_node.borrow_mut().cycles += cycles;
     }
 
     fn on_exit(&mut self, machine: &mut ckb_vm::machine::DefaultMachine<'a, Inner>) {
         assert_eq!(machine.exit_code(), 0);
-        self.tree_root
-            .borrow()
-            .display_flamegraph("", &mut std::io::stdout());
+        self.tree_root.borrow().display_flamegraph("", &mut std::io::stdout());
     }
 }
 
