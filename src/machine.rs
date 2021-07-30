@@ -77,11 +77,11 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M
     }
 
     pub fn run(&mut self) -> Result<i8, Error> {
-        let decoder = build_decoder::<Inner::REG>(self.isa());
+        let mut decoder = build_decoder::<Inner::REG>(self.isa());
         self.machine.set_running(true);
         while self.machine.running() {
             self.pprof_logger.on_step(&mut self.machine);
-            self.machine.step(&decoder)?;
+            self.machine.step(&mut decoder)?;
         }
         self.pprof_logger.on_exit(&mut self.machine);
         Ok(self.machine.exit_code())
