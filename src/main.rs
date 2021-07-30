@@ -124,7 +124,7 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: ckb_vm::machine::SupportMachine
 {
     fn on_step(&mut self, machine: &mut ckb_vm::machine::DefaultMachine<'a, Inner>) {
         let pc = machine.pc().to_u64();
-        let decoder = ckb_vm::decoder::build_decoder::<R>(machine.isa());
+        let mut decoder = ckb_vm::decoder::build_decoder::<R>(machine.isa());
         let inst = decoder.decode(machine.memory_mut(), pc).unwrap();
         let inst_length = instruction_length(inst) as u64;
         let opcode = ckb_vm::instructions::extract_opcode(inst);
