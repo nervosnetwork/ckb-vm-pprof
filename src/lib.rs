@@ -101,10 +101,11 @@ pub struct PProfLogger {
     tree_root: Rc<RefCell<PProfRecordTreeNode>>,
     tree_node: Rc<RefCell<PProfRecordTreeNode>>,
     ra_dict: HashMap<u64, Rc<RefCell<PProfRecordTreeNode>>>,
+    output_filename: String,
 }
 
 impl PProfLogger {
-    pub fn new(filename: String) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(filename: String, output_filename: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let file = std::fs::File::open(filename)?;
         let mmap = unsafe { memmap::Mmap::map(&file)? };
         let object = object::File::parse(&*mmap)?;
@@ -115,6 +116,7 @@ impl PProfLogger {
             tree_root: tree_root.clone(),
             tree_node: tree_root,
             ra_dict: HashMap::new(),
+            output_filename: String::from(output_filename),
         })
     }
 }
@@ -193,11 +195,16 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: ckb_vm::machine::SupportMachine
 
     fn on_exit(&mut self, machine: &mut ckb_vm::machine::DefaultMachine<'a, Inner>) {
         assert_eq!(machine.exit_code(), 0);
-        self.tree_root.borrow().display_flamegraph("", &mut std::io::stdout());
+        if self.output_filename == "-" {
+            self.tree_root.borrow().display_flamegraph("", &mut std::io::stdout());
+        } else {
+            let mut output = std::fs::File::create(&self.output_filename).expect("can't create file");
+            self.tree_root.borrow().display_flamegraph("", &mut output);
+        }
     }
 }
 
-pub fn quick_start(fl_bin: &str, fl_arg: Vec<&str>) -> Result<(i8, u64), Error> {
+pub fn quick_start(fl_bin: &str, fl_arg: Vec<&str>, output_filename: &str) -> Result<(i8, u64), Error> {
     let code_data = std::fs::read(fl_bin)?;
     let code = Bytes::from(code_data);
 
@@ -209,7 +216,7 @@ pub fn quick_start(fl_bin: &str, fl_arg: Vec<&str>) -> Result<(i8, u64), Error> 
     let default_machine_builder = ckb_vm::DefaultMachineBuilder::new(default_core_machine)
         .instruction_cycle_func(Box::new(cost_model::instruction_cycles));
     let default_machine = default_machine_builder.build();
-    let pprof_logger = PProfLogger::new(String::from(fl_bin)).map_err(|e| {
+    let pprof_logger = PProfLogger::new(String::from(fl_bin), output_filename).map_err(|e| {
         let mut stderr = std::io::stderr();
         writeln!(&mut stderr, "error while loading file {}: {:?}", fl_bin, e).expect("write stderr");
         Error::Unexpected
