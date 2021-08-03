@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let fl_bin = flag_parser.value_of("bin").unwrap();
     let fl_arg: Vec<_> = flag_parser.values_of("arg").unwrap_or_default().collect();
 
-    quick_start(fl_bin, fl_arg)?;
+    quick_start(fl_bin, fl_arg, "-")?;
 
     Ok(())
 }
