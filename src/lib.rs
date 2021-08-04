@@ -1,4 +1,6 @@
-use ckb_vm::{instructions::instruction_length, Bytes, CoreMachine, Error, Memory, Register, SupportMachine};
+use ckb_vm::{instructions::instruction_length, Bytes, Error, Memory, Register, Syscalls};
+use ckb_vm::{machine::asm::AsmCoreMachine, CoreMachine, SupportMachine};
+
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -204,18 +206,27 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: ckb_vm::machine::SupportMachine
     }
 }
 
-pub fn quick_start(fl_bin: &str, fl_arg: Vec<&str>, output_filename: &str) -> Result<(i8, u64), Error> {
+pub fn quick_start<'a>(
+    syscalls: Vec<Box<(dyn Syscalls<Box<AsmCoreMachine>> + 'a)>>,
+    fl_bin: &str,
+    fl_arg: Vec<&str>,
+    output_filename: &str,
+) -> Result<(i8, u64), Error> {
     let code_data = std::fs::read(fl_bin)?;
     let code = Bytes::from(code_data);
 
-    let default_core_machine = ckb_vm::DefaultCoreMachine::<u64, ckb_vm::SparseMemory<u64>>::new(
+    let default_core_machine = AsmCoreMachine::new(
         ckb_vm::ISA_IMC | ckb_vm::ISA_B | ckb_vm::ISA_MOP,
         ckb_vm::machine::VERSION1,
         1 << 32,
     );
-    let default_machine_builder = ckb_vm::DefaultMachineBuilder::new(default_core_machine)
+    let mut builder = ckb_vm::DefaultMachineBuilder::new(default_core_machine)
         .instruction_cycle_func(Box::new(cost_model::instruction_cycles));
-    let default_machine = default_machine_builder.build();
+    builder = syscalls
+        .into_iter()
+        .fold(builder, |builder, syscall| builder.syscall(syscall));
+    let default_machine = builder.build();
+
     let pprof_logger = PProfLogger::new(String::from(fl_bin), output_filename).map_err(|e| {
         let mut stderr = std::io::stderr();
         writeln!(&mut stderr, "error while loading file {}: {:?}", fl_bin, e).expect("write stderr");
