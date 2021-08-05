@@ -140,6 +140,24 @@ impl Profile {
         })
     }
 
+    pub fn from_bytes(program: &ckb_vm::Bytes) -> Result<Self, Box<dyn std::error::Error>> {
+        let object = object::File::parse(&program)?;
+        let ctx = addr2line::Context::new(&object)?;
+        let tree_root = std::rc::Rc::new(RefCell::new(PProfRecordTreeNode::root()));
+        // millisecond
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("timestamp")
+            .as_millis() as u64;
+        Ok(Self {
+            atsl_context: ctx,
+            tree_root: tree_root.clone(),
+            tree_node: tree_root,
+            ra_dict: std::collections::HashMap::new(),
+            output_filename: format!("pprof_{}", timestamp),
+        })
+    }
+
     pub fn get_tag(&mut self, addr: u64) -> String {
         if let Some(data) = self.cache_tag.get(&addr) {
             return data.clone();
