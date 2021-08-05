@@ -104,7 +104,7 @@ checksum = "85d7d3edb9e8d3fd763e4cdf9bb1910b9addf3511e4c167566d6d119906f03c2"
 
 [[package]]
 name = "ckb-vm-pprof"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "addr2line",
  "ckb-vm",

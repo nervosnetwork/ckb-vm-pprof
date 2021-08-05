@@ -1,6 +1,6 @@
 [package]
 name = "ckb-vm-pprof"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["mohanson <mohanson@outlook.com>"]
 edition = "2018"
 
@@ -14,7 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 addr2line = "0.13.0"
-ckb-vm = "0.20.0-rc2"
+ckb-vm = { version = "0.20.0-rc2", features = ["detect-asm"] }
 clap = "2.33"
 memmap = "0.7"
 object = "0.20"
