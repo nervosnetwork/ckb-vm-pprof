@@ -1,6 +1,6 @@
 [package]
 name = "ckb-vm-pprof"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["mohanson <mohanson@outlook.com>"]
 edition = "2018"
 
@@ -12,9 +12,14 @@ path = "src/lib.rs"
 name = "ckb-vm-pprof"
 path = "src/main.rs"
 
+[features]
+default = ["detect-asm"]
+asm = ["ckb-vm/asm"]
+detect-asm = ["ckb-vm/detect-asm"]
+
 [dependencies]
 addr2line = "0.13.0"
-ckb-vm = { version = "0.20.0-rc2", features = ["detect-asm"] }
+ckb-vm = { version = "=0.20.0-rc2", features = ["detect-asm"] }
 clap = "2.33"
-memmap = "0.7"
 object = "0.20"
+goblin = "0.4"
