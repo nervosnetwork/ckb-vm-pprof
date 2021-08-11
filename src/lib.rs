@@ -120,7 +120,6 @@ pub struct Profile {
     addrctx: Addr2LineContext,
     trie_root: Rc<RefCell<TrieNode>>,
     trie_node: Rc<RefCell<TrieNode>>,
-
     ra_dict: HashMap<u64, Rc<RefCell<TrieNode>>>,
     cache_tag: HashMap<u64, String>,
     cache_fun: HashMap<u64, String>,
@@ -183,13 +182,17 @@ impl Profile {
         if opcode == ckb_vm::instructions::insts::OP_JAL {
             let inst_length = instruction_length(inst) as u64;
             let inst = ckb_vm::instructions::Utype(inst);
-            // The standard software calling convention uses x1 as the return address register and x5 as an alternate
-            // link register.
-            if inst.rd() == ckb_vm::registers::RA || inst.rd() == ckb_vm::registers::T0 {
-                let addr = pc.wrapping_add(inst.immediate_s() as u64) & 0xfffffffffffffffe;
-                let link = pc + inst_length;
+            let addr = pc.wrapping_add(inst.immediate_s() as u64) & 0xfffffffffffffffe;
+            let link = pc + inst_length;
+            if self.cache_fun.contains_key(&addr) {
                 once(self, addr, link);
+                return;
             }
+            if let Some(node) = self.ra_dict.get(&addr) {
+                self.trie_node = node.clone();
+                return;
+            }
+            return;
         };
         if opcode == ckb_vm::instructions::insts::OP_JALR {
             let inst_length = instruction_length(inst) as u64;
@@ -197,36 +200,45 @@ impl Profile {
             let base = machine.registers()[inst.rs1()].to_u64();
             let addr = base.wrapping_add(inst.immediate_s() as u64) & 0xfffffffffffffffe;
             let link = pc + inst_length;
-            let value = self.ra_dict.get(&addr);
-            if value.is_some() {
-                self.trie_node = value.unwrap().clone();
-            } else {
+            if self.cache_fun.contains_key(&addr) {
                 once(self, addr, link);
+                return;
             }
+            if let Some(node) = self.ra_dict.get(&addr) {
+                self.trie_node = node.clone();
+                return;
+            }
+            return;
         };
         if opcode == ckb_vm::instructions::insts::OP_FAR_JUMP_ABS {
             let inst_length = instruction_length(inst) as u64;
             let inst = ckb_vm::instructions::Utype(inst);
             let addr = (inst.immediate_s() as u64) & 0xfffffffffffffffe;
             let link = pc + inst_length;
-            let value = self.ra_dict.get(&addr);
-            if value.is_some() {
-                self.trie_node = value.unwrap().clone();
-            } else {
+            if self.cache_fun.contains_key(&addr) {
                 once(self, addr, link);
+                return;
             }
+            if let Some(node) = self.ra_dict.get(&addr) {
+                self.trie_node = node.clone();
+                return;
+            }
+            return;
         }
         if opcode == ckb_vm::instructions::insts::OP_FAR_JUMP_REL {
             let inst_length = instruction_length(inst) as u64;
             let inst = ckb_vm::instructions::Utype(inst);
             let addr = pc.wrapping_add(inst.immediate_s() as u64) & 0xfffffffffffffffe;
             let link = pc + inst_length;
-            let value = self.ra_dict.get(&addr);
-            if value.is_some() {
-                self.trie_node = value.unwrap().clone();
-            } else {
+            if self.cache_fun.contains_key(&addr) {
                 once(self, addr, link);
+                return;
             }
+            if let Some(node) = self.ra_dict.get(&addr) {
+                self.trie_node = node.clone();
+                return;
+            }
+            return;
         }
     }
 }
