@@ -12,5 +12,7 @@ build() {
     dwarfdump res/$1 > res/$1.dwarfdump
 }
 
-build fib
-build abc
+# build fib
+# build abc
+
+build while_loop

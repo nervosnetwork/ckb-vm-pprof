@@ -111,6 +111,7 @@ dependencies = [
  "addr2line",
  "ckb-vm",
  "clap",
+ "goblin 0.4.0",
  "object",
 ]
 

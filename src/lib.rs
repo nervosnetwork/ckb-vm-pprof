@@ -57,6 +57,20 @@ fn sprint_fun(frame_iter: &mut Addr2LineFrameIter) -> String {
     s
 }
 
+fn goblin_fun(program: &Bytes) -> Result<HashMap<u64, String>, Box<dyn std::error::Error>> {
+    let mut map = HashMap::new();
+    let elf = goblin::elf::Elf::parse(&program)?;
+    for sym in &elf.syms {
+        if !sym.is_function() {
+            continue;
+        }
+        if let Some(Ok(r)) = elf.strtab.get(sym.st_name) {
+            map.insert(sym.st_value, r.to_string());
+        }
+    }
+    Ok(map)
+}
+
 struct TrieNode {
     name: String,
     parent: Option<Rc<RefCell<TrieNode>>>,
@@ -106,8 +120,10 @@ pub struct Profile {
     addrctx: Addr2LineContext,
     trie_root: Rc<RefCell<TrieNode>>,
     trie_node: Rc<RefCell<TrieNode>>,
+
     ra_dict: HashMap<u64, Rc<RefCell<TrieNode>>>,
     cache_tag: HashMap<u64, String>,
+    cache_fun: HashMap<u64, String>,
 }
 
 impl Profile {
@@ -121,6 +137,7 @@ impl Profile {
             trie_node: trie_root,
             ra_dict: HashMap::new(),
             cache_tag: HashMap::new(),
+            cache_fun: goblin_fun(&program)?,
         })
     }
 
