@@ -80,9 +80,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "ckb-vm"
-version = "0.20.0-rc3"
+version = "0.20.0-rc2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6d693b3df4194177dc3b8b7dd93740331ef26258c7430e07a8638fd8b65a184"
+checksum = "b3edaa6828e414b2d8cf773acaa561fd104ac595028de9326df790a1f7ba40f8"
 dependencies = [
  "byteorder",
  "bytes",
@@ -106,7 +106,7 @@ checksum = "bb60346ea1de433fe2d467e50a9b8235b139dd9322ac4f1874490b531cab80bc"
 
 [[package]]
 name = "ckb-vm-pprof"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "addr2line",
  "ckb-vm",

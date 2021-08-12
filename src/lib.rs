@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use ckb_vm::decoder::{build_decoder, Decoder};
 use ckb_vm::instructions::instruction_length;
-use ckb_vm::machine::{DefaultMachine, DefaultMachineBuilder, VERSION1};
+use ckb_vm::machine::{DefaultMachine, DefaultMachineBuilder};
 use ckb_vm::memory::Memory;
 use ckb_vm::{Bytes, CoreMachine, Error, Machine, Register, SupportMachine, Syscalls};
 
@@ -309,7 +309,7 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M
     }
 
     pub fn run(&mut self) -> Result<i8, Error> {
-        let mut decoder = build_decoder::<Inner::REG>(self.isa(), VERSION1);
+        let mut decoder = build_decoder::<Inner::REG>(self.isa());
         self.machine.set_running(true);
         while self.machine.running() {
             self.profile.step(&mut self.machine, &mut decoder);
