@@ -359,8 +359,8 @@ pub fn quick_start<'a>(
     if let Err(err) = result {
         machine.profile.trie_node.borrow().display_stacktrace(&mut std::io::stdout());
         let loc = machine.profile.addrctx.find_location(*machine.pc()).unwrap();
-        std::io::stderr().write_all(sprint_loc_file_line(&loc).as_bytes()).unwrap();
-        std::io::stderr().write_all(b"\n").unwrap();
+        std::io::stdout().write_all(sprint_loc_file_line(&loc).as_bytes()).unwrap();
+        std::io::stdout().write_all(b"\n").unwrap();
         return Err(err);
     }
 
