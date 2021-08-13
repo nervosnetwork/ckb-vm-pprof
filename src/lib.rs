@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::io::Write;
 use std::rc::Rc;
 
 use ckb_vm::decoder::{build_decoder, Decoder};
@@ -16,7 +17,6 @@ type Addr2LineEndianReader = addr2line::gimli::EndianReader<addr2line::gimli::Ru
 type Addr2LineContext = addr2line::Context<Addr2LineEndianReader>;
 type Addr2LineFrameIter<'a> = addr2line::FrameIter<'a, Addr2LineEndianReader>;
 
-#[allow(dead_code)]
 fn sprint_loc_file_line(loc: &Option<addr2line::Location>) -> String {
     if let Some(ref loc) = *loc {
         let file = loc.file.as_ref().unwrap();
@@ -111,7 +111,7 @@ impl TrieNode {
         stack.reverse();
         writer.write_all(b"Backtrace:\n").unwrap();
         for i in &stack {
-            writer.write_all(format!("  {}\n", i).as_bytes()).unwrap();
+            writer.write_all(format!("{}\n", i).as_bytes()).unwrap();
         }
     }
 }
@@ -167,9 +167,8 @@ impl Profile {
         self.trie_node.borrow_mut().cycles += cycles;
 
         let once = |s: &mut Self, addr: u64, link: u64| {
-            let tag_string = s.get_tag(addr);
             let chd = Rc::new(RefCell::new(TrieNode {
-                name: tag_string,
+                name: s.get_tag(addr),
                 parent: Some(s.trie_node.clone()),
                 childs: vec![],
                 cycles: 0,
@@ -359,6 +358,9 @@ pub fn quick_start<'a>(
 
     if let Err(err) = result {
         machine.profile.trie_node.borrow().display_stacktrace(&mut std::io::stdout());
+        let loc = machine.profile.addrctx.find_location(*machine.pc()).unwrap();
+        std::io::stdout().write_all(sprint_loc_file_line(&loc).as_bytes()).unwrap();
+        std::io::stdout().write_all(b"\n").unwrap();
         return Err(err);
     }
 
