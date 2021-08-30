@@ -72,6 +72,7 @@ fn goblin_fun(program: &Bytes) -> Result<HashMap<u64, String>, Box<dyn std::erro
 }
 
 struct TrieNode {
+    link: u64,
     name: String,
     parent: Option<Rc<RefCell<TrieNode>>>,
     childs: Vec<Rc<RefCell<TrieNode>>>,
@@ -81,6 +82,7 @@ struct TrieNode {
 impl TrieNode {
     fn root() -> Self {
         Self {
+            link: 0,
             name: String::from("??:??"),
             parent: None,
             childs: vec![],
@@ -120,7 +122,6 @@ pub struct Profile {
     addrctx: Addr2LineContext,
     trie_root: Rc<RefCell<TrieNode>>,
     trie_node: Rc<RefCell<TrieNode>>,
-    ra_dict: HashMap<u64, Rc<RefCell<TrieNode>>>,
     cache_tag: HashMap<u64, String>,
     cache_fun: HashMap<u64, String>,
 }
@@ -134,7 +135,6 @@ impl Profile {
             addrctx: ctx,
             trie_root: trie_root.clone(),
             trie_node: trie_root,
-            ra_dict: HashMap::new(),
             cache_tag: HashMap::new(),
             cache_fun: goblin_fun(&program)?,
         })
@@ -166,16 +166,36 @@ impl Profile {
         let cycles = machine.instruction_cycle_func().as_ref().map(|f| f(inst)).unwrap_or(0);
         self.trie_node.borrow_mut().cycles += cycles;
 
-        let once = |s: &mut Self, addr: u64, link: u64| {
+        let call = |s: &mut Self, addr: u64, link: u64| {
             let chd = Rc::new(RefCell::new(TrieNode {
+                link: link,
                 name: s.get_tag(addr),
                 parent: Some(s.trie_node.clone()),
                 childs: vec![],
                 cycles: 0,
             }));
             s.trie_node.borrow_mut().childs.push(chd.clone());
-            s.ra_dict.insert(link, s.trie_node.clone());
             s.trie_node = chd;
+        };
+
+        let quit_or_skip = |s: &mut Self, addr: u64| {
+            let mut f = s.trie_node.clone();
+            loop {
+                if f.borrow().link == addr {
+                    if let Some(p) = f.borrow().parent.clone() {
+                        s.trie_node = p.clone();
+                    } else {
+                        s.trie_node = f.clone();
+                    }
+                    break;
+                }
+                let p = f.borrow().parent.clone();
+                if let Some(p) = p {
+                    f = p.clone();
+                } else {
+                    break;
+                }
+            }
         };
 
         if opcode == ckb_vm::instructions::insts::OP_JAL {
@@ -184,13 +204,10 @@ impl Profile {
             let addr = pc.wrapping_add(inst.immediate_s() as u64) & 0xfffffffffffffffe;
             let link = pc + inst_length;
             if self.cache_fun.contains_key(&addr) {
-                once(self, addr, link);
+                call(self, addr, link);
                 return;
             }
-            if let Some(node) = self.ra_dict.get(&addr) {
-                self.trie_node = node.clone();
-                return;
-            }
+            quit_or_skip(self, addr);
             return;
         };
         if opcode == ckb_vm::instructions::insts::OP_JALR {
@@ -200,13 +217,10 @@ impl Profile {
             let addr = base.wrapping_add(inst.immediate_s() as u64) & 0xfffffffffffffffe;
             let link = pc + inst_length;
             if self.cache_fun.contains_key(&addr) {
-                once(self, addr, link);
+                call(self, addr, link);
                 return;
             }
-            if let Some(node) = self.ra_dict.get(&addr) {
-                self.trie_node = node.clone();
-                return;
-            }
+            quit_or_skip(self, addr);
             return;
         };
         if opcode == ckb_vm::instructions::insts::OP_FAR_JUMP_ABS {
@@ -215,13 +229,10 @@ impl Profile {
             let addr = (inst.immediate_s() as u64) & 0xfffffffffffffffe;
             let link = pc + inst_length;
             if self.cache_fun.contains_key(&addr) {
-                once(self, addr, link);
+                call(self, addr, link);
                 return;
             }
-            if let Some(node) = self.ra_dict.get(&addr) {
-                self.trie_node = node.clone();
-                return;
-            }
+            quit_or_skip(self, addr);
             return;
         }
         if opcode == ckb_vm::instructions::insts::OP_FAR_JUMP_REL {
@@ -230,13 +241,10 @@ impl Profile {
             let addr = pc.wrapping_add(inst.immediate_s() as u64) & 0xfffffffffffffffe;
             let link = pc + inst_length;
             if self.cache_fun.contains_key(&addr) {
-                once(self, addr, link);
+                call(self, addr, link);
                 return;
             }
-            if let Some(node) = self.ra_dict.get(&addr) {
-                self.trie_node = node.clone();
-                return;
-            }
+            quit_or_skip(self, addr);
             return;
         }
     }
