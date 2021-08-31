@@ -16,30 +16,6 @@ type Addr2LineEndianReader = addr2line::gimli::EndianReader<addr2line::gimli::Ru
 type Addr2LineContext = addr2line::Context<Addr2LineEndianReader>;
 type Addr2LineFrameIter<'a> = addr2line::FrameIter<'a, Addr2LineEndianReader>;
 
-fn sprint_loc_file_line(loc: &Option<addr2line::Location>) -> String {
-    if let Some(ref loc) = *loc {
-        let file = loc.file.as_ref().unwrap();
-        let mut s = String::from(*file);
-        if let Some(line) = loc.line {
-            s.push_str(format!(":{}", line).as_str());
-        } else {
-            s.push_str(":??");
-        }
-        s
-    } else {
-        String::from("??:??")
-    }
-}
-
-fn sprint_loc_file(loc: &Option<addr2line::Location>) -> String {
-    if let Some(ref loc) = *loc {
-        let file = loc.file.as_ref().unwrap();
-        String::from(*file)
-    } else {
-        String::from("??")
-    }
-}
-
 fn sprint_fun(frame_iter: &mut Addr2LineFrameIter) -> String {
     let mut s = String::from("??");
     loop {
@@ -91,11 +67,42 @@ impl TrieNode {
     }
 }
 
+#[derive(Clone)]
+pub struct Tags {
+    file: String,
+    line: u32,
+    func: String,
+}
+
+impl Default for Tags {
+    fn default() -> Self {
+        Tags {
+            file: String::from("??"),
+            line: 0xffffffff,
+            func: String::from("??"),
+        }
+    }
+}
+
+impl Tags {
+    pub fn simple(&self) -> String {
+        format!("{}:{}", self.file, self.func)
+    }
+
+    pub fn detail(&self) -> String {
+        if self.line == 0xffffffff {
+            format!("{}:??:{}", self.file, self.func)
+        } else {
+            format!("{}:{}:{}", self.file, self.line, self.func)
+        }
+    }
+}
+
 pub struct Profile {
     addrctx: Addr2LineContext,
     trie_root: Rc<RefCell<TrieNode>>,
     trie_node: Rc<RefCell<TrieNode>>,
-    cache_tag: HashMap<u64, String>,
+    cache_tag: HashMap<u64, Tags>,
     cache_fun: HashMap<u64, String>,
 }
 
@@ -115,30 +122,26 @@ impl Profile {
         })
     }
 
-    pub fn get_tag_simple(&mut self, addr: u64) -> String {
+    pub fn get_tag(&mut self, addr: u64) -> Tags {
         if let Some(data) = self.cache_tag.get(&addr) {
             return data.clone();
         }
+        let mut tag = Tags::default();
         let loc = self.addrctx.find_location(addr).unwrap();
-        let loc_string = sprint_loc_file(&loc);
+        if let Some(loc) = loc {
+            tag.file = loc.file.as_ref().unwrap().to_string();
+            if let Some(line) = loc.line {
+                tag.line = line;
+            }
+        }
         let mut frame_iter = self.addrctx.find_frames(addr).unwrap();
-        let fun_string = sprint_fun(&mut frame_iter);
-        let tag_string = format!("{}:{}", loc_string, fun_string);
-        self.cache_tag.insert(addr, tag_string.clone());
-        tag_string
-    }
-
-    pub fn get_tag_detail(&self, addr: u64) -> String {
-        let loc = self.addrctx.find_location(addr).unwrap();
-        let loc_string = sprint_loc_file_line(&loc);
-        let mut frame_iter = self.addrctx.find_frames(addr).unwrap();
-        let fun_string = sprint_fun(&mut frame_iter);
-        let tag_string = format!("{}:{}", loc_string, fun_string);
-        tag_string
+        tag.func = sprint_fun(&mut frame_iter);
+        self.cache_tag.insert(addr, tag.clone());
+        tag
     }
 
     fn display_flamegraph_rec(&mut self, prefix: &str, node: Rc<RefCell<TrieNode>>, writer: &mut impl std::io::Write) {
-        let prefix_name = format!("{}{}", prefix, self.get_tag_simple(node.borrow().addr));
+        let prefix_name = format!("{}{}", prefix, self.get_tag(node.borrow().addr).simple());
         writer.write_all(format!("{} {}\n", prefix_name, node.borrow().cycles).as_bytes()).unwrap();
         for e in &node.borrow().childs {
             self.display_flamegraph_rec(format!("{}; ", prefix_name).as_str(), e.clone(), writer);
@@ -150,11 +153,11 @@ impl Profile {
         self.display_flamegraph_rec("", self.trie_root.clone(), writer);
     }
 
-    pub fn display_stacktrace(&self, writer: &mut impl std::io::Write) {
+    pub fn display_stacktrace(&mut self, writer: &mut impl std::io::Write) {
         let mut frame = self.trie_node.clone();
-        let mut stack = vec![self.get_tag_detail(frame.borrow().pc)];
+        let mut stack = vec![self.get_tag(frame.borrow().pc).detail()];
         loop {
-            stack.push(self.get_tag_detail(frame.borrow().link));
+            stack.push(self.get_tag(frame.borrow().link).detail());
             let parent = frame.borrow().parent.clone();
             if let Some(p) = parent {
                 frame = p.clone();
