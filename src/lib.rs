@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::Write;
 use std::rc::Rc;
 
 use ckb_vm::decoder::{build_decoder, Decoder};
@@ -57,9 +56,8 @@ fn sprint_fun(frame_iter: &mut Addr2LineFrameIter) -> String {
     s
 }
 
-fn goblin_fun(program: &Bytes) -> Result<HashMap<u64, String>, Box<dyn std::error::Error>> {
+fn goblin_fun(elf: &goblin::elf::Elf) -> Result<HashMap<u64, String>, Box<dyn std::error::Error>> {
     let mut map = HashMap::new();
-    let elf = goblin::elf::Elf::parse(&program)?;
     for sym in &elf.syms {
         if !sym.is_function() {
             continue;
@@ -72,8 +70,9 @@ fn goblin_fun(program: &Bytes) -> Result<HashMap<u64, String>, Box<dyn std::erro
 }
 
 struct TrieNode {
+    addr: u64,
     link: u64,
-    name: String,
+    pc: u64,
     parent: Option<Rc<RefCell<TrieNode>>>,
     childs: Vec<Rc<RefCell<TrieNode>>>,
     cycles: u64,
@@ -82,38 +81,12 @@ struct TrieNode {
 impl TrieNode {
     fn root() -> Self {
         Self {
+            addr: 0,
             link: 0,
-            name: String::from("??:??"),
+            pc: 0,
             parent: None,
             childs: vec![],
             cycles: 0,
-        }
-    }
-
-    fn display_flamegraph(&self, prefix: &str, writer: &mut impl std::io::Write) {
-        let prefix_name = format!("{}{}", prefix, self.name);
-        writer.write_all(format!("{} {}\n", prefix_name, self.cycles).as_bytes()).unwrap();
-        for e in &self.childs {
-            e.borrow().display_flamegraph(format!("{}; ", prefix_name).as_str(), writer);
-        }
-    }
-
-    fn display_stacktrace(&self, writer: &mut impl std::io::Write) {
-        let mut stack = vec![self.name.clone()];
-        let mut frame = self.parent.clone();
-        loop {
-            if let Some(p) = frame {
-                let a = p.borrow();
-                stack.push(a.name.clone());
-                frame = a.parent.clone();
-                continue;
-            }
-            break;
-        }
-        stack.reverse();
-        writer.write_all(b"Backtrace:\n").unwrap();
-        for i in &stack {
-            writer.write_all(format!("{}\n", i).as_bytes()).unwrap();
         }
     }
 }
@@ -122,7 +95,6 @@ pub struct Profile {
     addrctx: Addr2LineContext,
     trie_root: Rc<RefCell<TrieNode>>,
     trie_node: Rc<RefCell<TrieNode>>,
-    cache_tag: HashMap<u64, String>,
     cache_fun: HashMap<u64, String>,
 }
 
@@ -131,30 +103,67 @@ impl Profile {
         let object = object::File::parse(&program)?;
         let ctx = addr2line::Context::new(&object)?;
         let trie_root = Rc::new(RefCell::new(TrieNode::root()));
+        let elf = goblin::elf::Elf::parse(&program)?;
+        trie_root.borrow_mut().addr = elf.entry;
         Ok(Self {
             addrctx: ctx,
             trie_root: trie_root.clone(),
             trie_node: trie_root,
-            cache_tag: HashMap::new(),
-            cache_fun: goblin_fun(&program)?,
+            cache_fun: goblin_fun(&elf)?,
         })
     }
 
-    pub fn get_tag(&mut self, addr: u64) -> String {
-        if let Some(data) = self.cache_tag.get(&addr) {
-            return data.clone();
-        }
+    pub fn get_tag_simple(&self, addr: u64) -> String {
         let loc = self.addrctx.find_location(addr).unwrap();
         let loc_string = sprint_loc_file(&loc);
         let mut frame_iter = self.addrctx.find_frames(addr).unwrap();
         let fun_string = sprint_fun(&mut frame_iter);
         let tag_string = format!("{}:{}", loc_string, fun_string);
-        self.cache_tag.insert(addr, tag_string.clone());
         tag_string
     }
-}
 
-impl Profile {
+    pub fn get_tag_detail(&self, addr: u64) -> String {
+        let loc = self.addrctx.find_location(addr).unwrap();
+        let loc_string = sprint_loc_file_line(&loc);
+        let mut frame_iter = self.addrctx.find_frames(addr).unwrap();
+        let fun_string = sprint_fun(&mut frame_iter);
+        let tag_string = format!("{}:{}", loc_string, fun_string);
+        tag_string
+    }
+
+    fn display_flamegraph_rec(&self, prefix: &str, node: Rc<RefCell<TrieNode>>, writer: &mut impl std::io::Write) {
+        let prefix_name = format!("{}{}", prefix, self.get_tag_simple(node.borrow().addr));
+        writer.write_all(format!("{} {}\n", prefix_name, node.borrow().cycles).as_bytes()).unwrap();
+        for e in &node.borrow().childs {
+            self.display_flamegraph_rec(format!("{}; ", prefix_name).as_str(), e.clone(), writer);
+        }
+        writer.flush().unwrap();
+    }
+
+    pub fn display_flamegraph(&self, writer: &mut impl std::io::Write) {
+        self.display_flamegraph_rec("", self.trie_root.clone(), writer);
+    }
+
+    pub fn display_stacktrace(&self, writer: &mut impl std::io::Write) {
+        let mut frame = self.trie_node.clone();
+        let mut stack = vec![self.get_tag_detail(frame.borrow().pc)];
+        loop {
+            stack.push(self.get_tag_detail(frame.borrow().link));
+            let parent = frame.borrow().parent.clone();
+            if let Some(p) = parent {
+                frame = p.clone();
+            } else {
+                break;
+            }
+        }
+        stack.reverse();
+        writer.write_all(b"Trace:\n").unwrap();
+        for i in &stack {
+            writer.write_all(format!("  {}\n", i).as_bytes()).unwrap();
+        }
+        writer.flush().unwrap();
+    }
+
     fn step<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>>(
         &mut self,
         machine: &mut DefaultMachine<'a, Inner>,
@@ -165,11 +174,13 @@ impl Profile {
         let opcode = ckb_vm::instructions::extract_opcode(inst);
         let cycles = machine.instruction_cycle_func().as_ref().map(|f| f(inst)).unwrap_or(0);
         self.trie_node.borrow_mut().cycles += cycles;
+        self.trie_node.borrow_mut().pc = pc;
 
         let call = |s: &mut Self, addr: u64, link: u64| {
             let chd = Rc::new(RefCell::new(TrieNode {
+                addr: addr,
                 link: link,
-                name: s.get_tag(addr),
+                pc: pc,
                 parent: Some(s.trie_node.clone()),
                 childs: vec![],
                 cycles: 0,
@@ -365,18 +376,15 @@ pub fn quick_start<'a>(
     let result = machine.run();
 
     if let Err(err) = result {
-        machine.profile.trie_node.borrow().display_stacktrace(&mut std::io::stdout());
-        let loc = machine.profile.addrctx.find_location(*machine.pc()).unwrap();
-        std::io::stdout().write_all(sprint_loc_file_line(&loc).as_bytes()).unwrap();
-        std::io::stdout().write_all(b"\n").unwrap();
+        machine.profile.display_stacktrace(&mut std::io::stdout());
         return Err(err);
     }
 
     if output_filename == "-" {
-        machine.profile.trie_root.borrow().display_flamegraph("", &mut std::io::stdout());
+        machine.profile.display_flamegraph(&mut std::io::stdout());
     } else {
         let mut output = std::fs::File::create(&output_filename).expect("can't create file");
-        machine.profile.trie_root.borrow().display_flamegraph("", &mut output);
+        machine.profile.display_flamegraph(&mut output);
     }
 
     Ok((0, machine.machine.cycles()))
