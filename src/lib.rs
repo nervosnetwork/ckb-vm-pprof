@@ -95,6 +95,7 @@ pub struct Profile {
     addrctx: Addr2LineContext,
     trie_root: Rc<RefCell<TrieNode>>,
     trie_node: Rc<RefCell<TrieNode>>,
+    cache_tag: HashMap<u64, String>,
     cache_fun: HashMap<u64, String>,
 }
 
@@ -109,16 +110,21 @@ impl Profile {
             addrctx: ctx,
             trie_root: trie_root.clone(),
             trie_node: trie_root,
+            cache_tag: HashMap::new(),
             cache_fun: goblin_fun(&elf)?,
         })
     }
 
-    pub fn get_tag_simple(&self, addr: u64) -> String {
+    pub fn get_tag_simple(&mut self, addr: u64) -> String {
+        if let Some(data) = self.cache_tag.get(&addr) {
+            return data.clone();
+        }
         let loc = self.addrctx.find_location(addr).unwrap();
         let loc_string = sprint_loc_file(&loc);
         let mut frame_iter = self.addrctx.find_frames(addr).unwrap();
         let fun_string = sprint_fun(&mut frame_iter);
         let tag_string = format!("{}:{}", loc_string, fun_string);
+        self.cache_tag.insert(addr, tag_string.clone());
         tag_string
     }
 
@@ -131,7 +137,7 @@ impl Profile {
         tag_string
     }
 
-    fn display_flamegraph_rec(&self, prefix: &str, node: Rc<RefCell<TrieNode>>, writer: &mut impl std::io::Write) {
+    fn display_flamegraph_rec(&mut self, prefix: &str, node: Rc<RefCell<TrieNode>>, writer: &mut impl std::io::Write) {
         let prefix_name = format!("{}{}", prefix, self.get_tag_simple(node.borrow().addr));
         writer.write_all(format!("{} {}\n", prefix_name, node.borrow().cycles).as_bytes()).unwrap();
         for e in &node.borrow().childs {
@@ -140,7 +146,7 @@ impl Profile {
         writer.flush().unwrap();
     }
 
-    pub fn display_flamegraph(&self, writer: &mut impl std::io::Write) {
+    pub fn display_flamegraph(&mut self, writer: &mut impl std::io::Write) {
         self.display_flamegraph_rec("", self.trie_root.clone(), writer);
     }
 
