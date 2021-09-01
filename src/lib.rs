@@ -7,6 +7,7 @@ use ckb_vm::decoder::{build_decoder, Decoder};
 use ckb_vm::instructions::instruction_length;
 use ckb_vm::machine::{DefaultMachine, DefaultMachineBuilder};
 use ckb_vm::memory::Memory;
+use ckb_vm::registers::{A0, SP};
 use ckb_vm::{Bytes, CoreMachine, Error, Machine, Register, SupportMachine, Syscalls};
 
 mod cost_model;
@@ -52,6 +53,7 @@ struct TrieNode {
     parent: Option<Rc<RefCell<TrieNode>>>,
     childs: Vec<Rc<RefCell<TrieNode>>>,
     cycles: u64,
+    regs: [[u64; 32]; 2],
 }
 
 impl TrieNode {
@@ -63,11 +65,12 @@ impl TrieNode {
             parent: None,
             childs: vec![],
             cycles: 0,
+            regs: [[0; 32]; 2],
         }
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Tags {
     file: String,
     line: u32,
@@ -104,6 +107,7 @@ pub struct Profile {
     trie_node: Rc<RefCell<TrieNode>>,
     cache_tag: HashMap<u64, Tags>,
     cache_fun: HashMap<u64, String>,
+    sbrk_heap: u64,
 }
 
 impl Profile {
@@ -119,6 +123,7 @@ impl Profile {
             trie_node: trie_root,
             cache_tag: HashMap::new(),
             cache_fun: goblin_fun(&elf)?,
+            sbrk_heap: 0,
         })
     }
 
@@ -179,6 +184,10 @@ impl Profile {
         decoder: &mut Decoder,
     ) {
         let pc = machine.pc().to_u64();
+        let sp = machine.registers()[SP].to_u64();
+        if sp < self.sbrk_heap {
+            panic!("Heap and stack overlapping sp={} heap={}", sp, self.sbrk_heap);
+        }
         let inst = decoder.decode(machine.memory_mut(), pc).unwrap();
         let opcode = ckb_vm::instructions::extract_opcode(inst);
         let cycles = machine.instruction_cycle_func().as_ref().map(|f| f(inst)).unwrap_or(0);
@@ -186,6 +195,10 @@ impl Profile {
         self.trie_node.borrow_mut().pc = pc;
 
         let call = |s: &mut Self, addr: u64, link: u64| {
+            let mut regs = [[0; 32]; 2];
+            for i in 0..32 {
+                regs[0][i] = machine.registers()[i].to_u64();
+            }
             let chd = Rc::new(RefCell::new(TrieNode {
                 addr: addr,
                 link: link,
@@ -193,19 +206,31 @@ impl Profile {
                 parent: Some(s.trie_node.clone()),
                 childs: vec![],
                 cycles: 0,
+                regs: regs,
             }));
             s.trie_node.borrow_mut().childs.push(chd.clone());
             s.trie_node = chd;
+        };
+
+        let sbrk_or_skip = |s: &mut Self| {
+            let addr = s.trie_node.borrow().addr;
+            if s.get_tag(addr).func == "_sbrk" {
+                s.sbrk_heap = s.trie_node.borrow().regs[0][A0] + s.trie_node.borrow().regs[1][A0];
+            }
         };
 
         let quit_or_skip = |s: &mut Self, addr: u64| {
             let mut f = s.trie_node.clone();
             loop {
                 if f.borrow().link == addr {
+                    for i in 0..32 {
+                        s.trie_node.borrow_mut().regs[1][i] = machine.registers()[i].to_u64();
+                    }
+                    sbrk_or_skip(s);
                     if let Some(p) = f.borrow().parent.clone() {
                         s.trie_node = p.clone();
                     } else {
-                        s.trie_node = f.clone();
+                        unimplemented!();
                     }
                     break;
                 }
