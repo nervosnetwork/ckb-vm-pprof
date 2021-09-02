@@ -33,7 +33,7 @@ fn sprint_fun(frame_iter: &mut Addr2LineFrameIter) -> String {
     s
 }
 
-fn goblin_fun(elf: &goblin::elf::Elf) -> Result<HashMap<u64, String>, Box<dyn std::error::Error>> {
+fn goblin_fun(elf: &goblin::elf::Elf) -> HashMap<u64, String> {
     let mut map = HashMap::new();
     for sym in &elf.syms {
         if !sym.is_function() {
@@ -43,7 +43,18 @@ fn goblin_fun(elf: &goblin::elf::Elf) -> Result<HashMap<u64, String>, Box<dyn st
             map.insert(sym.st_value, r.to_string());
         }
     }
-    Ok(map)
+    map
+}
+
+fn goblin_get_sym(elf: &goblin::elf::Elf, sym: &str) -> u64 {
+    for e in &elf.syms {
+        if let Some(Ok(r)) = elf.strtab.get(e.st_name) {
+            if r == sym {
+                return e.st_value;
+            }
+        }
+    }
+    return 0;
 }
 
 struct TrieNode {
@@ -122,8 +133,8 @@ impl Profile {
             trie_root: trie_root.clone(),
             trie_node: trie_root,
             cache_tag: HashMap::new(),
-            cache_fun: goblin_fun(&elf)?,
-            sbrk_heap: 0,
+            cache_fun: goblin_fun(&elf),
+            sbrk_heap: goblin_get_sym(&elf, "_end"),
         })
     }
 
