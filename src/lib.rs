@@ -118,6 +118,7 @@ pub struct Profile {
     trie_node: Rc<RefCell<TrieNode>>,
     cache_tag: HashMap<u64, Tags>,
     cache_fun: HashMap<u64, String>,
+    sbrk_addr: u64,
     sbrk_heap: u64,
 }
 
@@ -134,6 +135,7 @@ impl Profile {
             trie_node: trie_root,
             cache_tag: HashMap::new(),
             cache_fun: goblin_fun(&elf),
+            sbrk_addr: goblin_get_sym(&elf, "_sbrk"),
             sbrk_heap: goblin_get_sym(&elf, "_end"),
         })
     }
@@ -224,8 +226,7 @@ impl Profile {
         };
 
         let sbrk_or_skip = |s: &mut Self| {
-            let addr = s.trie_node.borrow().addr;
-            if s.get_tag(addr).func == "_sbrk" {
+            if s.trie_node.borrow().addr == s.sbrk_addr {
                 s.sbrk_heap = s.trie_node.borrow().regs[0][A0] + s.trie_node.borrow().regs[1][A0];
             }
         };
