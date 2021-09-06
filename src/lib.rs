@@ -171,7 +171,7 @@ impl Profile {
         self.display_flamegraph_rec("", self.trie_root.clone(), writer);
     }
 
-    pub fn display_stacktrace(&mut self, writer: &mut impl std::io::Write) {
+    pub fn display_stacktrace(&mut self, prefix: &str, writer: &mut impl std::io::Write) {
         let mut frame = self.trie_node.clone();
         let mut stack = vec![self.get_tag(frame.borrow().pc).detail()];
         loop {
@@ -186,7 +186,7 @@ impl Profile {
         stack.reverse();
         writer.write_all(b"Trace:\n").unwrap();
         for i in &stack {
-            writer.write_all(format!("  {}\n", i).as_bytes()).unwrap();
+            writer.write_all(format!("{}{}\n", prefix, i).as_bytes()).unwrap();
         }
         writer.flush().unwrap();
     }
@@ -384,23 +384,8 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M
 }
 
 #[cfg(has_asm)]
-use ckb_vm::machine::asm::AsmCoreMachine;
-#[cfg(has_asm)]
-pub type CoreMachineType = AsmCoreMachine;
-#[cfg(has_asm)]
-pub type CoreMachineTypeFour = Box<AsmCoreMachine>;
-
-#[cfg(not(has_asm))]
-use ckb_vm::machine::DefaultCoreMachine;
-#[cfg(not(has_asm))]
-use ckb_vm::memory::{sparse::SparseMemory, wxorx::WXorXMemory};
-#[cfg(not(has_asm))]
-pub type CoreMachineType = DefaultCoreMachine<u64, WXorXMemory<SparseMemory<u64>>>;
-#[cfg(not(has_asm))]
-pub type CoreMachineTypeFour = DefaultCoreMachine<u64, WXorXMemory<SparseMemory<u64>>>;
-
 pub fn quick_start<'a>(
-    syscalls: Vec<Box<(dyn Syscalls<CoreMachineTypeFour> + 'a)>>,
+    syscalls: Vec<Box<(dyn Syscalls<Box<ckb_vm::machine::asm::AsmCoreMachine>> + 'a)>>,
     fl_bin: &str,
     fl_arg: Vec<&str>,
     output_filename: &str,
@@ -409,7 +394,7 @@ pub fn quick_start<'a>(
     let code = Bytes::from(code_data);
 
     let isa = ckb_vm::ISA_IMC | ckb_vm::ISA_B | ckb_vm::ISA_MOP;
-    let default_core_machine = CoreMachineType::new(isa, ckb_vm::machine::VERSION1, 1 << 32);
+    let default_core_machine = ckb_vm::machine::asm::AsmCoreMachine::new(isa, ckb_vm::machine::VERSION1, 1 << 32);
     let mut builder = DefaultMachineBuilder::new(default_core_machine)
         .instruction_cycle_func(Box::new(cost_model::instruction_cycles));
     builder = syscalls.into_iter().fold(builder, |builder, syscall| builder.syscall(syscall));
@@ -422,7 +407,7 @@ pub fn quick_start<'a>(
     let result = machine.run();
 
     if let Err(err) = result {
-        machine.profile.display_stacktrace(&mut std::io::stdout());
+        machine.profile.display_stacktrace("", &mut std::io::stdout());
         return Err(err);
     }
 
