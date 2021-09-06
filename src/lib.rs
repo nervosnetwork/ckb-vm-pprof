@@ -386,18 +386,18 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M
 #[cfg(has_asm)]
 use ckb_vm::machine::asm::AsmCoreMachine;
 #[cfg(has_asm)]
-type CoreMachineType = AsmCoreMachine;
+pub type CoreMachineType = AsmCoreMachine;
 #[cfg(has_asm)]
-type CoreMachineTypeFour = Box<AsmCoreMachine>;
+pub type CoreMachineTypeFour = Box<AsmCoreMachine>;
 
 #[cfg(not(has_asm))]
 use ckb_vm::machine::DefaultCoreMachine;
 #[cfg(not(has_asm))]
 use ckb_vm::memory::{sparse::SparseMemory, wxorx::WXorXMemory};
 #[cfg(not(has_asm))]
-type CoreMachineType = DefaultCoreMachine<u64, WXorXMemory<SparseMemory<u64>>>;
+pub type CoreMachineType = DefaultCoreMachine<u64, WXorXMemory<SparseMemory<u64>>>;
 #[cfg(not(has_asm))]
-type CoreMachineTypeFour = DefaultCoreMachine<u64, WXorXMemory<SparseMemory<u64>>>;
+pub type CoreMachineTypeFour = DefaultCoreMachine<u64, WXorXMemory<SparseMemory<u64>>>;
 
 pub fn quick_start<'a>(
     syscalls: Vec<Box<(dyn Syscalls<CoreMachineTypeFour> + 'a)>>,
