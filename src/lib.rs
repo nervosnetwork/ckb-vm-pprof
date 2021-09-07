@@ -226,7 +226,9 @@ impl Profile {
 
         let sbrk_or_skip = |s: &mut Self| {
             if s.trie_node.borrow().addr == s.sbrk_addr {
-                s.sbrk_heap = s.trie_node.borrow().regs[0][A0] + s.trie_node.borrow().regs[1][A0];
+                // https://github.com/nervosnetwork/riscv-newlib/blob/newlib-4.1.0-fork/libgloss/riscv/sys_sbrk.c#L49
+                // Note incr could be negative.
+                s.sbrk_heap = s.trie_node.borrow().regs[0][A0].wrapping_add(s.trie_node.borrow().regs[1][A0]);
             }
         };
 
