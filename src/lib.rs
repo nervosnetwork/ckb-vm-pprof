@@ -184,7 +184,6 @@ impl Profile {
             }
         }
         stack.reverse();
-        writer.write_all(b"Trace:\n").unwrap();
         for i in &stack {
             writer.write_all(format!("{}{}\n", prefix, i).as_bytes()).unwrap();
         }
