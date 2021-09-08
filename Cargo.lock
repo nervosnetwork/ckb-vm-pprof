@@ -80,9 +80,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "ckb-vm"
-version = "0.20.0-rc2"
+version = "0.20.0-rc5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3edaa6828e414b2d8cf773acaa561fd104ac595028de9326df790a1f7ba40f8"
+checksum = "60dcf786d3e6424be300a84b65a35bafc8344de5350fa96500ed9f6cc370865f"
 dependencies = [
  "byteorder",
  "bytes",
@@ -100,9 +100,9 @@ dependencies = [
 
 [[package]]
 name = "ckb-vm-definitions"
-version = "0.20.0-rc3"
+version = "0.20.0-rc5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb60346ea1de433fe2d467e50a9b8235b139dd9322ac4f1874490b531cab80bc"
+checksum = "deb44cd2753aaeb2dc8a3df7b293ddfc3cbaaf8232d819650c0fc365cacda34f"
 
 [[package]]
 name = "ckb-vm-pprof"
