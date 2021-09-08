@@ -374,7 +374,7 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M
     }
 
     pub fn run(&mut self) -> Result<i8, Error> {
-        let mut decoder = build_decoder::<Inner::REG>(self.isa());
+        let mut decoder = build_decoder::<Inner::REG>(self.isa(), self.version());
         self.machine.set_running(true);
         while self.machine.running() {
             self.profile.step(&mut self.machine, &mut decoder);

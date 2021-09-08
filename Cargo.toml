@@ -19,7 +19,7 @@ detect-asm = ["ckb-vm/detect-asm"]
 
 [dependencies]
 addr2line = "0.13.0"
-ckb-vm = { version = "=0.20.0-rc2", features = ["detect-asm"] }
+ckb-vm = { version = "0.20.0-rc5", features = ["detect-asm"] }
 clap = "2.33"
 object = "0.20"
 goblin = "0.4"
