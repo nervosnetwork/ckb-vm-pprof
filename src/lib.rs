@@ -194,13 +194,13 @@ impl Profile {
         &mut self,
         machine: &mut DefaultMachine<'a, Inner>,
         decoder: &mut Decoder,
-    ) {
+    ) -> Result<(), Error> {
         let pc = machine.pc().to_u64();
         let sp = machine.registers()[SP].to_u64();
         if sp < self.sbrk_heap {
             panic!("Heap and stack overlapping sp={} heap={}", sp, self.sbrk_heap);
         }
-        let inst = decoder.decode(machine.memory_mut(), pc).unwrap();
+        let inst = decoder.decode(machine.memory_mut(), pc)?;
         let opcode = ckb_vm::instructions::extract_opcode(inst);
         let cycles = machine.instruction_cycle_func().as_ref().map(|f| f(inst)).unwrap_or(0);
         self.trie_node.borrow_mut().cycles += cycles;
@@ -263,10 +263,10 @@ impl Profile {
             let link = pc + inst_length;
             if self.cache_fun.contains_key(&addr) {
                 call(self, addr, link);
-                return;
+                return Ok(());
             }
             quit_or_skip(self, addr);
-            return;
+            return Ok(());
         };
         if opcode == ckb_vm::instructions::insts::OP_JALR {
             let inst_length = instruction_length(inst) as u64;
@@ -276,10 +276,10 @@ impl Profile {
             let link = pc + inst_length;
             if self.cache_fun.contains_key(&addr) {
                 call(self, addr, link);
-                return;
+                return Ok(());
             }
             quit_or_skip(self, addr);
-            return;
+            return Ok(());
         };
         if opcode == ckb_vm::instructions::insts::OP_FAR_JUMP_ABS {
             let inst_length = instruction_length(inst) as u64;
@@ -288,10 +288,10 @@ impl Profile {
             let link = pc + inst_length;
             if self.cache_fun.contains_key(&addr) {
                 call(self, addr, link);
-                return;
+                return Ok(());
             }
             quit_or_skip(self, addr);
-            return;
+            return Ok(());
         }
         if opcode == ckb_vm::instructions::insts::OP_FAR_JUMP_REL {
             let inst_length = instruction_length(inst) as u64;
@@ -300,11 +300,12 @@ impl Profile {
             let link = pc + inst_length;
             if self.cache_fun.contains_key(&addr) {
                 call(self, addr, link);
-                return;
+                return Ok(());
             }
             quit_or_skip(self, addr);
-            return;
+            return Ok(());
         }
+        return Ok(());
     }
 }
 
@@ -377,7 +378,7 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M
         let mut decoder = build_decoder::<Inner::REG>(self.isa(), self.version());
         self.machine.set_running(true);
         while self.machine.running() {
-            self.profile.step(&mut self.machine, &mut decoder);
+            self.profile.step(&mut self.machine, &mut decoder)?;
             self.machine.step(&mut decoder)?;
         }
         Ok(self.machine.exit_code())
