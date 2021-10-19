@@ -8,7 +8,10 @@ use ckb_vm::instructions::instruction_length;
 use ckb_vm::machine::{DefaultMachine, DefaultMachineBuilder};
 use ckb_vm::memory::Memory;
 use ckb_vm::registers::{A0, SP};
-use ckb_vm::{Bytes, CoreMachine, Error, Machine, Register, SupportMachine, Syscalls};
+use ckb_vm::{
+    Bytes, CoreMachine, DefaultCoreMachine, Error, Machine, Register, SparseMemory, SupportMachine, Syscalls,
+    WXorXMemory,
+};
 
 mod cost_model;
 pub use cost_model::instruction_cycles;
@@ -384,9 +387,8 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M
     }
 }
 
-#[cfg(has_asm)]
 pub fn quick_start<'a>(
-    syscalls: Vec<Box<(dyn Syscalls<Box<ckb_vm::machine::asm::AsmCoreMachine>> + 'a)>>,
+    syscalls: Vec<Box<(dyn Syscalls<DefaultCoreMachine<u64, WXorXMemory<SparseMemory<u64>>>> + 'a)>>,
     fl_bin: &str,
     fl_arg: Vec<&str>,
     output_filename: &str,
@@ -395,7 +397,10 @@ pub fn quick_start<'a>(
     let code = Bytes::from(code_data);
 
     let isa = ckb_vm::ISA_IMC | ckb_vm::ISA_B | ckb_vm::ISA_MOP;
-    let default_core_machine = ckb_vm::machine::asm::AsmCoreMachine::new(isa, ckb_vm::machine::VERSION1, 1 << 32);
+    let default_core_machine = ckb_vm::DefaultCoreMachine::<
+        u64,
+        ckb_vm::memory::wxorx::WXorXMemory<ckb_vm::memory::sparse::SparseMemory<u64>>,
+    >::new(isa, ckb_vm::machine::VERSION1, 1 << 32);
     let mut builder = DefaultMachineBuilder::new(default_core_machine)
         .instruction_cycle_func(Box::new(cost_model::instruction_cycles));
     builder = syscalls.into_iter().fold(builder, |builder, syscall| builder.syscall(syscall));

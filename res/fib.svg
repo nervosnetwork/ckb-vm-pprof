@@ -1,4 +1,4 @@
-<?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg version="1.1" width="1200" height="246" onload="init(evt)" viewBox="0 0 1200 246" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><!--Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples.--><!--NOTES: --><defs><linearGradient id="background" y1="0" y2="1" x1="0" x2="0"><stop stop-color="#eeeeee" offset="5%"/><stop stop-color="#eeeeb0" offset="95%"/></linearGradient></defs><style type="text/css">
+<?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg version="1.1" width="1200" height="198" onload="init(evt)" viewBox="0 0 1200 198" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:fg="http://github.com/jonhoo/inferno"><!--Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples.--><!--NOTES: --><defs><linearGradient id="background" y1="0" y2="1" x1="0" x2="0"><stop stop-color="#eeeeee" offset="5%"/><stop stop-color="#eeeeb0" offset="95%"/></linearGradient></defs><style type="text/css">
 text { font-family:"Verdana"; font-size:12px; fill:rgb(0,0,0); }
 #title { text-anchor:middle; font-size:17px; }
 #search { opacity:0.1; cursor:pointer; }
@@ -8,14 +8,16 @@ text { font-family:"Verdana"; font-size:12px; fill:rgb(0,0,0); }
 #frames > *:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
 .hide { display:none; }
 .parent { opacity:0.5; }
-</style><script type="text/ecmascript"><![CDATA[var nametype = 'Function:';
-var fontsize = 12;
-var fontwidth = 0.59;
-var xpad = 10;
-var inverted = false;
-var searchcolor = 'rgb(230,0,230)';
-var fluiddrawing = true;
-var truncate_text_right = false;]]><![CDATA["use strict";
+</style><script type="text/ecmascript"><![CDATA[
+        var nametype = 'Function:';
+        var fontsize = 12;
+        var fontwidth = 0.59;
+        var xpad = 10;
+        var inverted = false;
+        var searchcolor = 'rgb(230,0,230)';
+        var fluiddrawing = true;
+        var truncate_text_right = false;
+    ]]><![CDATA["use strict";
 var details, searchbtn, unzoombtn, matchedtxt, svg, searching, frames;
 function init(evt) {
     details = document.getElementById("details").firstChild;
@@ -24,13 +26,14 @@ function init(evt) {
     matchedtxt = document.getElementById("matched");
     svg = document.getElementsByTagName("svg")[0];
     frames = document.getElementById("frames");
+    total_samples = parseInt(frames.attributes.total_samples.value);
     searching = 0;
 
     // Use GET parameters to restore a flamegraph's state.
     var restore_state = function() {
         var params = get_params();
         if (params.x && params.y)
-            zoom(find_group(document.querySelector('[x="' + params.x + '"][y="' + params.y + '"]')));
+            zoom(find_group(document.querySelector('[*|x="' + params.x + '"][y="' + params.y + '"]')));
         if (params.s)
             search(params.s);
     };
@@ -88,9 +91,9 @@ window.addEventListener("click", function(e) {
 
         // set parameters for zoom state
         var el = target.querySelector("rect");
-        if (el && el.attributes && el.attributes.y && el.attributes._orig_x) {
+        if (el && el.attributes && el.attributes.y && el.attributes["fg:x"]) {
             var params = get_params()
-            params.x = el.attributes._orig_x.value;
+            params.x = el.attributes["fg:x"].value;
             params.y = el.attributes.y.value;
             history.replaceState(null, null, parse_params(params));
         }
@@ -158,15 +161,15 @@ function find_group(node) {
     return find_group(parent);
 }
 function orig_save(e, attr, val) {
-    if (e.attributes["_orig_" + attr] != undefined) return;
+    if (e.attributes["fg:orig_" + attr] != undefined) return;
     if (e.attributes[attr] == undefined) return;
     if (val == undefined) val = e.attributes[attr].value;
-    e.setAttribute("_orig_" + attr, val);
+    e.setAttribute("fg:orig_" + attr, val);
 }
 function orig_load(e, attr) {
-    if (e.attributes["_orig_"+attr] == undefined) return;
-    e.attributes[attr].value = e.attributes["_orig_" + attr].value;
-    e.removeAttribute("_orig_" + attr);
+    if (e.attributes["fg:orig_"+attr] == undefined) return;
+    e.attributes[attr].value = e.attributes["fg:orig_" + attr].value;
+    e.removeAttribute("fg:orig_" + attr);
 }
 function g_to_text(e) {
     var text = find_child(e, "title").firstChild.nodeValue;
@@ -214,42 +217,34 @@ function update_text(e) {
 }
 // zoom
 function zoom_reset(e) {
-    if (e.attributes != undefined) {
-        orig_load(e, "x");
-        orig_load(e, "width");
+    if (e.tagName == "rect") {
+        e.attributes.x.value = format_percent(100 * parseInt(e.attributes["fg:x"].value) / total_samples);
+        e.attributes.width.value = format_percent(100 * parseInt(e.attributes["fg:w"].value) / total_samples);
     }
     if (e.childNodes == undefined) return;
     for(var i = 0, c = e.childNodes; i < c.length; i++) {
         zoom_reset(c[i]);
     }
 }
-function zoom_child(e, x, ratio) {
-    if (e.attributes != undefined) {
-        if (e.attributes.x != undefined) {
-            orig_save(e, "x");
-            e.attributes.x.value = format_percent((parseFloat(e.attributes.x.value) - x) * ratio);
-            if (e.tagName == "text") {
-                e.attributes.x.value = format_percent(parseFloat(find_child(e.parentNode, "rect[x]").attributes.x.value) + (100 * 3 / frames.attributes.width.value));
-            }
-        }
-        if (e.attributes.width != undefined) {
-            orig_save(e, "width");
-            e.attributes.width.value = format_percent(parseFloat(e.attributes.width.value) * ratio);
-        }
+function zoom_child(e, x, zoomed_width_samples) {
+    if (e.tagName == "text") {
+        var parent_x = parseFloat(find_child(e.parentNode, "rect[x]").attributes.x.value);
+        e.attributes.x.value = format_percent(parent_x + (100 * 3 / frames.attributes.width.value));
+    } else if (e.tagName == "rect") {
+        e.attributes.x.value = format_percent(100 * (parseInt(e.attributes["fg:x"].value) - x) / zoomed_width_samples);
+        e.attributes.width.value = format_percent(100 * parseInt(e.attributes["fg:w"].value) / zoomed_width_samples);
     }
     if (e.childNodes == undefined) return;
     for(var i = 0, c = e.childNodes; i < c.length; i++) {
-        zoom_child(c[i], x, ratio);
+        zoom_child(c[i], x, zoomed_width_samples);
     }
 }
 function zoom_parent(e) {
     if (e.attributes) {
         if (e.attributes.x != undefined) {
-            orig_save(e, "x");
             e.attributes.x.value = "0.0%";
         }
         if (e.attributes.width != undefined) {
-            orig_save(e, "width");
             e.attributes.width.value = "100.0%";
         }
     }
@@ -260,20 +255,17 @@ function zoom_parent(e) {
 }
 function zoom(node) {
     var attr = find_child(node, "rect").attributes;
-    var width = parseFloat(attr.width.value);
-    var xmin = parseFloat(attr.x.value);
+    var width = parseInt(attr["fg:w"].value);
+    var xmin = parseInt(attr["fg:x"].value);
     var xmax = xmin + width;
     var ymin = parseFloat(attr.y.value);
-    var ratio = 100 / width;
-    // XXX: Workaround for JavaScript float issues (fix me)
-    var fudge = 0.001;
     unzoombtn.classList.remove("hide");
     var el = frames.children;
     for (var i = 0; i < el.length; i++) {
         var e = el[i];
         var a = find_child(e, "rect").attributes;
-        var ex = parseFloat(a.x.value);
-        var ew = parseFloat(a.width.value);
+        var ex = parseInt(a["fg:x"].value);
+        var ew = parseInt(a["fg:w"].value);
         // Is it an ancestor
         if (!inverted) {
             var upstack = parseFloat(a.y.value) > ymin;
@@ -282,7 +274,7 @@ function zoom(node) {
         }
         if (upstack) {
             // Direct ancestor
-            if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+            if (ex <= xmin && (ex+ew) >= xmax) {
                 e.classList.add("parent");
                 zoom_parent(e);
                 update_text(e);
@@ -294,11 +286,11 @@ function zoom(node) {
         // Children maybe
         else {
             // no common path
-            if (ex < xmin || ex + fudge >= xmax) {
+            if (ex < xmin || ex >= xmax) {
                 e.classList.add("hide");
             }
             else {
-                zoom_child(e, xmin, ratio);
+                zoom_child(e, xmin, width);
                 update_text(e);
             }
         }
@@ -347,17 +339,21 @@ function search(term) {
     var maxwidth = 0;
     for (var i = 0; i < el.length; i++) {
         var e = el[i];
+        // Skip over frames which are either not visible, or below the zoomed-to frame
+        if (e.classList.contains("hide") || e.classList.contains("parent")) {
+            continue;
+        }
         var func = g_to_func(e);
         var rect = find_child(e, "rect");
         if (func == null || rect == null)
             continue;
         // Save max width. Only works as we have a root frame
-        var w = parseFloat(rect.attributes.width.value);
+        var w = parseInt(rect.attributes["fg:w"].value);
         if (w > maxwidth)
             maxwidth = w;
         if (func.match(re)) {
             // highlight
-            var x = parseFloat(rect.attributes.x.value);
+            var x = parseInt(rect.attributes["fg:x"].value);
             orig_save(rect, "fill");
             rect.attributes.fill.value = searchcolor;
             // remember matches
@@ -397,11 +393,10 @@ function search(term) {
     // Step through frames saving only the biggest bottom-up frames
     // thanks to the sort order. This relies on the tree property
     // where children are always smaller than their parents.
-    var fudge = 0.0001;    // JavaScript floating point
     for (var k in keys) {
-        var x = parseFloat(keys[k]);
+        var x = parseInt(keys[k]);
         var w = matches[keys[k]];
-        if (x >= lastx + lastw - fudge) {
+        if (x >= lastx + lastw) {
             count += w;
             lastx = x;
             lastw = w;
@@ -416,4 +411,4 @@ function search(term) {
 function format_percent(n) {
     return n.toFixed(4) + "%";
 }
-]]></script><rect x="0" y="0" width="100%" height="246" fill="url(#background)"/><text id="title" x="50.0000%" y="24.00">Flame Graph</text><text id="details" x="10" y="229.00"> </text><text id="unzoom" class="hide" x="10" y="24.00">Reset Zoom</text><text id="search" x="1090" y="24.00">Search</text><text id="matched" x="1090" y="229.00"> </text><svg id="frames" x="10" width="1180"><g><title> /mnt/sata/src/ckb-vm-pprof/res/fib.c:main (636 samples, 40.41%)</title><rect x="2.9860%" y="165" width="40.4066%" height="15" fill="rgb(227,0,7)"/><text x="3.2360%" y="175.50"> /mnt/sata/src/ckb-vm-pprof/res/fib.c:main</text></g><g><title> /mnt/sata/src/ckb-vm-pprof/res/fib.c:fib (612 samples, 38.88%)</title><rect x="4.5108%" y="149" width="38.8818%" height="15" fill="rgb(217,0,24)"/><text x="4.7608%" y="159.50"> /mnt/sata/src/ckb-vm-pprof/res/fib.c:fib</text></g><g><title> /mnt/sata/src/ckb-vm-pprof/res/fib.c:fib (582 samples, 36.98%)</title><rect x="6.4168%" y="133" width="36.9759%" height="15" fill="rgb(221,193,54)"/><text x="6.6668%" y="143.50"> /mnt/sata/src/ckb-vm-pprof/res/fib.c:fib</text></g><g><title> /mnt/sata/src/ckb-vm-pprof/res/fib.c:fib (552 samples, 35.07%)</title><rect x="8.3227%" y="117" width="35.0699%" height="15" fill="rgb(248,212,6)"/><text x="8.5727%" y="127.50"> /mnt/sata/src/ckb-vm-pprof/res/fib.c:fib</text></g><g><title> /mnt/sata/src/ckb-vm-pprof/res/fib.c:fib (522 samples, 33.16%)</title><rect x="10.2287%" y="101" width="33.1639%" height="15" fill="rgb(208,68,35)"/><text x="10.4787%" y="111.50"> /mnt/sata/src/ckb-vm-pprof/res/fib.c:fib</text></g><g><title> /mnt/sata/src/ckb-vm-pprof/res/fib.c:fib (443 samples, 28.14%)</title><rect x="15.2478%" y="85" width="28.1449%" height="15" fill="rgb(232,128,0)"/><text x="15.4978%" y="95.50"> /mnt/sata/src/ckb-vm-pprof/res/fib.c:fib</text></g><g><title> /mnt/sata/src/ckb-vm-pprof/res/fib.c:fib (274 samples, 17.41%)</title><rect x="25.9848%" y="69" width="17.4079%" height="15" fill="rgb(207,160,47)"/><text x="26.2348%" y="79.50"> /mnt/sata/src/ckb-vm-pprof..</text></g><g><title> /mnt/sata/src/ckb-vm-pprof/res/fib.c:fib (180 samples, 11.44%)</title><rect x="31.9568%" y="53" width="11.4358%" height="15" fill="rgb(228,23,34)"/><text x="32.2068%" y="63.50"> /mnt/sata/src/ck..</text></g><g><title> /mnt/sata/src/ckb-vm-pprof/res/fib.c:fib (99 samples, 6.29%)</title><rect x="37.1029%" y="37" width="6.2897%" height="15" fill="rgb(218,30,26)"/><text x="37.3529%" y="47.50"> /mnt/sa..</text></g><g><title>all (1,574 samples, 100%)</title><rect x="0.0000%" y="197" width="100.0000%" height="15" fill="rgb(220,122,19)"/><text x="0.2500%" y="207.50"></text></g><g><title>??:?? (1,574 samples, 100.00%)</title><rect x="0.0000%" y="181" width="100.0000%" height="15" fill="rgb(250,228,42)"/><text x="0.2500%" y="191.50">??:??</text></g><g><title> ??:?? (891 samples, 56.61%)</title><rect x="43.3926%" y="165" width="56.6074%" height="15" fill="rgb(240,193,28)"/><text x="43.6426%" y="175.50"> ??:??</text></g><g><title> ??:?? (121 samples, 7.69%)</title><rect x="92.3126%" y="149" width="7.6874%" height="15" fill="rgb(216,20,37)"/><text x="92.5626%" y="159.50"> ??:??</text></g><g><title> ??:?? (34 samples, 2.16%)</title><rect x="97.8399%" y="133" width="2.1601%" height="15" fill="rgb(206,188,39)"/><text x="98.0899%" y="143.50"> ..</text></g><g><title> ??:?? (8 samples, 0.51%)</title><rect x="99.4917%" y="117" width="0.5083%" height="15" fill="rgb(217,207,13)"/><text x="99.7417%" y="127.50"></text></g></svg></svg>
+]]></script><rect x="0" y="0" width="100%" height="198" fill="url(#background)"/><text id="title" x="50.0000%" y="24.00">Flame Graph</text><text id="details" x="10" y="181.00"> </text><text id="unzoom" class="hide" x="10" y="24.00">Reset Zoom</text><text id="search" x="1090" y="24.00">Search</text><text id="matched" x="1090" y="181.00"> </text><svg id="frames" x="10" width="1180" total_samples="2096"><g><title> /code/fib.c:main (781 samples, 37.26%)</title><rect x="1.5744%" y="117" width="37.2615%" height="15" fill="rgb(227,0,7)" fg:x="33" fg:w="781"/><text x="1.8244%" y="127.50"> /code/fib.c:main</text></g><g><title> /code/fib.c:fib (755 samples, 36.02%)</title><rect x="2.8149%" y="101" width="36.0210%" height="15" fill="rgb(217,0,24)" fg:x="59" fg:w="755"/><text x="3.0649%" y="111.50"> /code/fib.c:fib</text></g><g><title> /code/fib.c:fib (694 samples, 33.11%)</title><rect x="5.7252%" y="85" width="33.1107%" height="15" fill="rgb(221,193,54)" fg:x="120" fg:w="694"/><text x="5.9752%" y="95.50"> /code/fib.c:fib</text></g><g><title> /code/fib.c:fib (572 samples, 27.29%)</title><rect x="11.5458%" y="69" width="27.2901%" height="15" fill="rgb(248,212,6)" fg:x="242" fg:w="572"/><text x="11.7958%" y="79.50"> /code/fib.c:fib</text></g><g><title> /code/fib.c:fib (345 samples, 16.46%)</title><rect x="22.3760%" y="53" width="16.4599%" height="15" fill="rgb(208,68,35)" fg:x="469" fg:w="345"/><text x="22.6260%" y="63.50"> /code/fib.c:fib</text></g><g><title> /code/fib.c:fib (80 samples, 3.82%)</title><rect x="35.0191%" y="37" width="3.8168%" height="15" fill="rgb(232,128,0)" fg:x="734" fg:w="80"/><text x="35.2691%" y="47.50"> /co..</text></g><g><title> /source/riscv-newlib/newlib/libc/stdlib/__call_atexit.c:register_fini (7 samples, 0.33%)</title><rect x="42.1279%" y="101" width="0.3340%" height="15" fill="rgb(207,160,47)" fg:x="883" fg:w="7"/><text x="42.3779%" y="111.50"></text></g><g><title> /source/riscv-newlib/newlib/libc/misc/init.c:__libc_init_array (83 samples, 3.96%)</title><rect x="38.8359%" y="117" width="3.9599%" height="15" fill="rgb(228,23,34)" fg:x="814" fg:w="83"/><text x="39.0859%" y="127.50"> /so..</text></g><g><title> ??:?? (7 samples, 0.33%)</title><rect x="42.4618%" y="101" width="0.3340%" height="15" fill="rgb(218,30,26)" fg:x="890" fg:w="7"/><text x="42.7118%" y="111.50"></text></g><g><title> /source/riscv-newlib/newlib/libc/stdlib/atexit.c:atexit (42 samples, 2.00%)</title><rect x="42.7958%" y="117" width="2.0038%" height="15" fill="rgb(220,122,19)" fg:x="897" fg:w="42"/><text x="43.0458%" y="127.50"> ..</text></g><g><title> /source/riscv-newlib/newlib/libc/stdlib/__atexit.c:__register_exitproc (35 samples, 1.67%)</title><rect x="43.1298%" y="101" width="1.6698%" height="15" fill="rgb(250,228,42)" fg:x="904" fg:w="35"/><text x="43.3798%" y="111.50"></text></g><g><title> /source/riscv-newlib/libgloss/riscv/internal_syscall.h:_exit (501 samples, 23.90%)</title><rect x="45.8015%" y="101" width="23.9027%" height="15" fill="rgb(240,193,28)" fg:x="960" fg:w="501"/><text x="46.0515%" y="111.50"> /source/riscv-newlib/libgloss/riscv/i..</text></g><g><title> /source/riscv-newlib/newlib/libc/stdlib/exit.c:exit (702 samples, 33.49%)</title><rect x="44.7996%" y="117" width="33.4924%" height="15" fill="rgb(216,20,37)" fg:x="939" fg:w="702"/><text x="45.0496%" y="127.50"> /source/riscv-newlib/newlib/libc/stdlib/exit.c:exit</text></g><g><title> /source/riscv-newlib/newlib/libc/stdlib/__call_atexit.c:__call_exitprocs (180 samples, 8.59%)</title><rect x="69.7042%" y="101" width="8.5878%" height="15" fill="rgb(206,188,39)" fg:x="1461" fg:w="180"/><text x="69.9542%" y="111.50"> /source/ris..</text></g><g><title> /source/riscv-newlib/newlib/libc/misc/fini.c:__libc_fini_array (68 samples, 3.24%)</title><rect x="75.0477%" y="85" width="3.2443%" height="15" fill="rgb(217,207,13)" fg:x="1573" fg:w="68"/><text x="75.2977%" y="95.50"> /s..</text></g><g><title> ??:?? (27 samples, 1.29%)</title><rect x="77.0038%" y="69" width="1.2882%" height="15" fill="rgb(231,73,38)" fg:x="1614" fg:w="27"/><text x="77.2538%" y="79.50"></text></g><g><title>all (2,096 samples, 100%)</title><rect x="0.0000%" y="149" width="100.0000%" height="15" fill="rgb(225,20,46)" fg:x="0" fg:w="2096"/><text x="0.2500%" y="159.50"></text></g><g><title>??:?? (2,096 samples, 100.00%)</title><rect x="0.0000%" y="133" width="100.0000%" height="15" fill="rgb(210,31,41)" fg:x="0" fg:w="2096"/><text x="0.2500%" y="143.50">??:??</text></g><g><title> ??:?? (455 samples, 21.71%)</title><rect x="78.2920%" y="117" width="21.7080%" height="15" fill="rgb(221,200,47)" fg:x="1641" fg:w="455"/><text x="78.5420%" y="127.50"> ??:??</text></g></svg></svg>
