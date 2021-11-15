@@ -201,7 +201,10 @@ impl Profile {
         let pc = machine.pc().to_u64();
         let sp = machine.registers()[SP].to_u64();
         if sp < self.sbrk_heap {
-            panic!("Heap and stack overlapping sp={} heap={}", sp, self.sbrk_heap);
+            return Err(Error::External(format!(
+                "Heap and stack overlapping sp={} heap={}",
+                sp, self.sbrk_heap
+            )));
         }
         let inst = decoder.decode(machine.memory_mut(), pc)?;
         let opcode = ckb_vm::instructions::extract_opcode(inst);
