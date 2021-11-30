@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build();
     let profile = ckb_vm_pprof::Profile::new(&code)?;
     let mut machine = ckb_vm_pprof::PProfMachine::new(default_machine, profile);
-    let mut args = vec![fl_bin.to_string().into()];
+    let mut args = vec![];
     args.append(&mut fl_arg.iter().map(|x| ckb_vm::Bytes::from(x.to_string())).collect());
     machine.load_program(&code, &args)?;
     match machine.run() {
