@@ -14,7 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 addr2line = "0.13.0"
-ckb-vm = { version = "0.20.1" }
+ckb-vm = { version = "0.21.1" }
 clap = "2.33"
 object = "0.20"
 goblin = "0.4"
