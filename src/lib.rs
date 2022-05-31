@@ -5,12 +5,12 @@ use std::rc::Rc;
 
 use ckb_vm::decoder::{build_decoder, Decoder};
 use ckb_vm::instructions::instruction_length;
-use ckb_vm::machine::{DefaultMachine, DefaultMachineBuilder};
+use ckb_vm::machine::{DefaultMachine, DefaultMachineBuilder, VERSION0};
 use ckb_vm::memory::Memory;
 use ckb_vm::registers::{A0, SP};
 use ckb_vm::{
     Bytes, CoreMachine, DefaultCoreMachine, Error, Machine, Register, SparseMemory, SupportMachine, Syscalls,
-    WXorXMemory,
+    WXorXMemory, ISA_MOP,
 };
 
 mod cost_model;
@@ -381,9 +381,16 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M
     }
 
     pub fn run(&mut self) -> Result<i8, Error> {
+        if self.isa() & ISA_MOP != 0 && self.version() == VERSION0 {
+            return Err(Error::InvalidVersion);
+        }
         let mut decoder = build_decoder::<Inner::REG>(self.isa(), self.version());
         self.machine.set_running(true);
         while self.machine.running() {
+            if self.machine.reset_signal() {
+                decoder.reset_instructions_cache();
+                self.profile = Profile::new(&self.machine.code()).unwrap();
+            }
             self.profile.step(&mut self.machine, &mut decoder)?;
             self.machine.step(&mut decoder)?;
         }
