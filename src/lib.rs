@@ -208,7 +208,7 @@ impl Profile {
         }
         let inst = decoder.decode(machine.memory_mut(), pc)?;
         let opcode = ckb_vm::instructions::extract_opcode(inst);
-        let cycles = machine.instruction_cycle_func().as_ref().map(|f| f(inst)).unwrap_or(0);
+        let cycles = machine.instruction_cycle_func()(inst);
         self.trie_node.borrow_mut().cycles += cycles;
         self.trie_node.borrow_mut().pc = pc;
 
@@ -412,8 +412,8 @@ pub fn quick_start<'a>(
         u64,
         ckb_vm::memory::wxorx::WXorXMemory<ckb_vm::memory::sparse::SparseMemory<u64>>,
     >::new(isa, ckb_vm::machine::VERSION1, 1 << 32);
-    let mut builder = DefaultMachineBuilder::new(default_core_machine)
-        .instruction_cycle_func(Box::new(cost_model::instruction_cycles));
+    let mut builder =
+        DefaultMachineBuilder::new(default_core_machine).instruction_cycle_func(&cost_model::instruction_cycles);
     builder = syscalls.into_iter().fold(builder, |builder, syscall| builder.syscall(syscall));
     let default_machine = builder.build();
     let profile = Profile::new(&code).unwrap();
