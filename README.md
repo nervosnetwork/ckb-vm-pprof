@@ -45,6 +45,10 @@ Open the svg:
 
 ![img](res/fib.svg)
 
+# Know more about ckb-vm-pprof
+
+- [ckb-vm-pprof-converter](https://github.com/xxuejie/ckb-vm-pprof-converter): This project converts raw data emitted by ckb-vm-pprof to profile.proto format supported by pprof for detailed analysis.
+
 # Licences
 
 MIT
